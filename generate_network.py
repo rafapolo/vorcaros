@@ -16,7 +16,14 @@ OUTPUT_FILE = "output/network_vorcaro.csv"
 TARGET_NAMES = [
     "HENRIQUE MOURA VORCARO",
     "DANIEL BUENO VORCARO",
+    "NATALIA BUENO VORCARO ZETTEL",
+    "ALINE BUENO RIBEIRO VORCARO",
+    "FELIPE CANCADO VORCARO",
 ]
+
+IGNORED_COMPANIES = {
+    "STARMED ATIVIDADES MEDICAS LTDA",
+}
 
 
 def connect_db():
@@ -115,7 +122,7 @@ def build_relationships(person_name, initial_df, all_socios_df, socio_companies_
     # Person → their companies
     for _, row in initial_df.iterrows():
         company_name = company_lookup.get(row["cnpj_basico"], "")
-        if company_name:
+        if company_name and company_name not in IGNORED_COMPANIES:
             relationships.append({
                 "source": person_name,
                 "target": company_name,
@@ -127,7 +134,7 @@ def build_relationships(person_name, initial_df, all_socios_df, socio_companies_
     for _, row in all_socios_df.iterrows():
         company_name = company_lookup.get(row["cnpj_basico"], "")
         socio_name = safe_name(row["nome_socio_razao_social"])
-        if company_name and socio_name:
+        if company_name and socio_name and company_name not in IGNORED_COMPANIES:
             relationships.append({
                 "source": company_name,
                 "target": socio_name,
@@ -146,7 +153,7 @@ def build_relationships(person_name, initial_df, all_socios_df, socio_companies_
             socio_id = str(row["cpf_cnpj_socio"]) if pd.notna(row["cpf_cnpj_socio"]) else ""
             company_name = company_lookup.get(row["cnpj_basico"], "")
             src_name = socio_name_lookup.get(socio_id, "")
-            if src_name and company_name:
+            if src_name and company_name and company_name not in IGNORED_COMPANIES:
                 relationships.append({
                     "source": src_name,
                     "target": company_name,
