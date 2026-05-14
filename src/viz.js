@@ -2,6 +2,7 @@ import {
   zoom, zoomIdentity, select,
   forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide
 } from 'd3';
+import { CNAE_LABELS } from './cnae-labels.js';
 
 const QUALIFICACAO_MAP = {
   0: "Não informada",
@@ -85,6 +86,7 @@ class FastNetworkVisualization {
     this.selectedNode = null;
     this.selectedConnectedIds = new Set();
     this.cnaeFilter = null;
+    this.statusFilters = new Set();
     this.labelPositions = [];
     this.showLabels = true;
 
@@ -243,6 +245,7 @@ class FastNetworkVisualization {
       }
 
       node.isHenrique = node.color === '#ff0000';
+      node.highlighted = false;
     }
   }
 
@@ -320,25 +323,30 @@ class FastNetworkVisualization {
     ctx.shadowBlur = 0;
 
     if (!this.selectedNode) {
-      if (this.cnaeFilter) {
+      const hasStatusFilter = this.statusFilters.size > 0;
+      if (this.cnaeFilter || hasStatusFilter) {
         const strokeWidth = Math.max(1, 1.5 / this.transform.k);
+        const isMatch = node =>
+          this.cnaeFilter
+            ? node.cnae === this.cnaeFilter
+            : this.statusFilters.has(node.status);
         // Dim non-matching nodes
         ctx.fillStyle = '#333';
         ctx.beginPath();
         for (const node of this.data.nodes) {
-          if (node.cnae === this.cnaeFilter) continue;
+          if (isMatch(node)) continue;
           ctx.moveTo(node.x + node.radius, node.y);
           ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
         }
         ctx.fill();
-        // Highlight matching nodes with white border
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 8;
+        // Highlight matching nodes with green glow
+        ctx.shadowColor = '#00ff88';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#00ff88';
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = strokeWidth;
         for (const node of this.data.nodes) {
-          if (node.cnae !== this.cnaeFilter) continue;
-          ctx.fillStyle = node.color;
+          if (!isMatch(node)) continue;
           ctx.beginPath();
           ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
           ctx.fill();
@@ -348,9 +356,10 @@ class FastNetworkVisualization {
         return;
       }
 
-      // Batch nodes by fill color
+      // Batch non-highlighted nodes by fill color
       const groups = new Map();
       for (const node of this.data.nodes) {
+        if (node.highlighted) continue;
         let arr = groups.get(node.color);
         if (!arr) { arr = []; groups.set(node.color, arr); }
         arr.push(node);
@@ -363,6 +372,24 @@ class FastNetworkVisualization {
           ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
         }
         ctx.fill();
+      }
+
+      // Search match nodes with green glow
+      const highlighted = this.data.nodes.filter(n => n.highlighted);
+      if (highlighted.length) {
+        const strokeWidth = Math.max(1, 1.5 / this.transform.k);
+        ctx.shadowColor = '#00ff88';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#00ff88';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = strokeWidth;
+        for (const node of highlighted) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
       }
       return;
     }
@@ -649,12 +676,25 @@ class FastNetworkVisualization {
       `;
     }
 
+    const cnaeDesc = node.cnae ? CNAE_LABELS.get(node.cnae) : null;
+    const cnaeHtml = cnaeDesc
+      ? `<span class="node-type cnae-tag">${cnaeDesc}</span>`
+      : '';
+
+    const statusLabel = node.status ?? null;
+    const statusClass = statusLabel ? `status-${statusLabel.toLowerCase()}` : '';
+    const statusHtml = statusLabel
+      ? `<span class="node-type node-status ${statusClass}">${statusLabel}</span>`
+      : '';
+
     document.getElementById('nodeInfo').classList.add('open');
     document.querySelector('.top-controls').classList.remove('open');
     document.getElementById('nodeInfoContent').innerHTML = `
       <div class="node-details">
         <div class="node-name">${node.label}</div>
-        <span class="node-type ${nodeType}">${nodeTypeText}</span>
+        <div class="node-type-row">
+          <span class="node-type ${nodeType}">${nodeTypeText}</span>${statusHtml}${cnaeHtml}
+        </div>
       </div>
       ${connectionsHtml}
     `;
@@ -714,9 +754,9 @@ class FastNetworkVisualization {
     }
 
     for (const node of this.data.nodes) {
-      if (matchIds.has(node.id))        { node.color = '#ffff00'; node.radius = 10; }
-      else if (connectedIds.has(node.id)) { node.color = '#00ffff'; node.radius = 6;  }
-      else                              { node.color = '#333333'; node.radius = 3;  }
+      if (matchIds.has(node.id))        { node.color = '#00ff88'; node.highlighted = true; node.radius = 10; }
+      else if (connectedIds.has(node.id)) { node.color = '#00ffff'; node.highlighted = false; node.radius = 6;  }
+      else                              { node.color = '#333333'; node.highlighted = false; node.radius = 3;  }
     }
 
     this.redraw();
@@ -772,16 +812,72 @@ class FastNetworkVisualization {
     this.cnaeFilter = cnaeCode;
     this.clearSelection();
     if (!this.data) return [];
-    return this.data.nodes
+    const labels = this.data.nodes
       .filter(n => n.cnae === cnaeCode)
       .map(n => n.label)
       .sort((a, b) => a.localeCompare(b));
+    this.redraw();
+    return labels;
+  }
+
+  showCnaeInfo(cnaeCode, cnaeDesc, labels) {
+    const items = labels.map(label => {
+      const node = this.data?.nodes.find(n => n.label === label);
+      const color = node ? (node.originalColor || node.color) : null;
+      let cls = 'connection-item';
+      if (color === '#4488ff') cls += ' empresa-direta';
+      else cls += ' empresa-socio';
+      return `<li class="${cls}" data-label="${label.replace(/"/g, '&quot;')}">${label}</li>`;
+    }).join('');
+
+    document.getElementById('nodeInfoTitle').textContent = 'Detalhes';
+    document.getElementById('nodeInfo').classList.add('open');
+    document.getElementById('nodeInfoContent').innerHTML = `
+      <div class="node-name">${cnaeDesc}</div>
+      <div class="node-type-row" style="margin-bottom:15px">
+        <span class="node-type cnae-tag">CNAE ${cnaeCode}</span>
+        <span class="node-type cnae-tag">${labels.length} empresa${labels.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="connections-section" style="border-top:none;padding-top:0">
+        <ul class="connections-list">${items}</ul>
+      </div>
+    `;
+
+    document.querySelectorAll('#nodeInfoContent .connection-item[data-label]').forEach(el => {
+      el.addEventListener('click', () => this.selectNodeByLabel(el.dataset.label));
+    });
   }
 
   clearCnaeFilter() {
     this.cnaeFilter = null;
     this.processData();
     this.redraw();
+    document.getElementById('nodeInfo').classList.remove('open');
+  }
+
+  toggleStatusFilter(status) {
+    if (this.statusFilters.has(status)) {
+      this.statusFilters.delete(status);
+    } else {
+      this.statusFilters.add(status);
+    }
+    this.processData();
+    this.redraw();
+  }
+
+  clearStatusFilters() {
+    this.statusFilters.clear();
+    this.processData();
+    this.redraw();
+  }
+
+  countByStatus() {
+    if (!this.data) return {};
+    const counts = {};
+    for (const n of this.data.nodes) {
+      if (n.status) counts[n.status] = (counts[n.status] ?? 0) + 1;
+    }
+    return counts;
   }
 
   selectNodeByLabel(label) {

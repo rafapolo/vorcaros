@@ -115,44 +115,20 @@ const CNAE_DATA = [
 let activeCnae = null;
 const rowRefs = new Map();
 
-function populateDetail(detail, labels) {
-  if (!labels.length) {
-    detail.innerHTML = '<div class="cnae-company" style="opacity:.4;cursor:default">Nenhuma empresa na rede</div>';
-    return;
-  }
-  const frag = document.createDocumentFragment();
-  labels.forEach(label => {
-    const el = document.createElement('div');
-    el.className = 'cnae-company';
-    el.textContent = label;
-    el.title = label;
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.networkViz?.selectNodeByLabel(label);
-    });
-    frag.appendChild(el);
-  });
-  detail.innerHTML = '';
-  detail.appendChild(frag);
-}
-
-function toggleCnae(code, row, detail) {
+function toggleCnae(code, desc, row) {
   if (activeCnae === code) {
     row.classList.remove('active');
-    detail.hidden = true;
     activeCnae = null;
     window.networkViz?.clearCnaeFilter();
     return;
   }
   if (activeCnae) {
-    const prev = rowRefs.get(activeCnae);
-    if (prev) { prev.row.classList.remove('active'); prev.detail.hidden = true; }
+    rowRefs.get(activeCnae)?.classList.remove('active');
   }
   activeCnae = code;
   row.classList.add('active');
-  detail.hidden = false;
   const labels = window.networkViz?.filterByCnae(code) ?? [];
-  populateDetail(detail, labels);
+  window.networkViz?.showCnaeInfo(code, desc, labels);
 }
 
 function initCnaePanel() {
@@ -167,30 +143,62 @@ function initCnaePanel() {
       `<span class="cnae-desc">${desc}</span>` +
       `<span class="connection-count">${cnt}</span>`;
 
-    const detail = document.createElement('div');
-    detail.className = 'cnae-detail';
-    detail.hidden = true;
-
-    rowRefs.set(code, { row, detail });
-    row.addEventListener('click', () => toggleCnae(code, row, detail));
-
+    rowRefs.set(code, row);
+    row.addEventListener('click', () => toggleCnae(code, desc, row));
     frag.appendChild(row);
-    frag.appendChild(detail);
   });
 
   list.appendChild(frag);
 }
 
-// Re-populate detail if viz loads after a CNAE was already selected
+const STATUS_ORDER = ['Ativa', 'Baixada', 'Inapta', 'Suspensa'];
+
+function initStatusPanel() {
+  const container = document.getElementById('status-toggles');
+  STATUS_ORDER.forEach(status => {
+    const btn = document.createElement('button');
+    btn.className = `status-btn status-${status.toLowerCase()}`;
+    btn.dataset.status = status;
+    btn.innerHTML = `<span class="status-label">${status}</span><span class="status-count">—</span>`;
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      window.networkViz?.toggleStatusFilter(status);
+    });
+    container.appendChild(btn);
+  });
+}
+
 window.addEventListener('vorcano-loaded', () => {
+  const nodes = window.networkViz?.data?.nodes;
+  if (nodes) {
+    const cnaeCounts = new Map();
+    const statusCounts = new Map();
+    for (const n of nodes) {
+      if (n.cnae != null) cnaeCounts.set(n.cnae, (cnaeCounts.get(n.cnae) ?? 0) + 1);
+      if (n.status)       statusCounts.set(n.status, (statusCounts.get(n.status) ?? 0) + 1);
+    }
+    for (const [code, , ] of CNAE_DATA) {
+      const row = rowRefs.get(code);
+      if (!row) continue;
+      const badge = row.querySelector('.connection-count');
+      if (badge) badge.textContent = cnaeCounts.get(code) ?? 0;
+    }
+    document.querySelectorAll('.status-btn').forEach(btn => {
+      const cnt = statusCounts.get(btn.dataset.status) ?? 0;
+      btn.querySelector('.status-count').textContent = cnt;
+    });
+  }
+
   if (activeCnae === null) return;
-  const ref = rowRefs.get(activeCnae);
-  if (!ref) return;
+  const row = rowRefs.get(activeCnae);
+  if (!row) return;
+  const desc = CNAE_DATA.find(([c]) => c === activeCnae)?.[1] ?? '';
   const labels = window.networkViz?.filterByCnae(activeCnae) ?? [];
-  populateDetail(ref.detail, labels);
+  window.networkViz?.showCnaeInfo(activeCnae, desc, labels);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  initStatusPanel();
   initCnaePanel();
 
   document.getElementById('toggle-controls').addEventListener('click', () => {

@@ -18,6 +18,9 @@ CENTRAL_PERSONS = {
 }
 
 
+STATUS_MAP = {1: "Nula", 2: "Ativa", 3: "Suspensa", 4: "Inapta", 8: "Baixada"}
+
+
 def load_cnae_map(razao_socials):
     """Return dict {razao_social: cnae_code} for the given company names."""
     for path in DB_PATHS:
@@ -46,6 +49,34 @@ def load_cnae_map(razao_socials):
     return {}
 
 
+def load_status_map(razao_socials):
+    """Return dict {razao_social: status_label} for the given company names."""
+    for path in DB_PATHS:
+        if Path(path).exists():
+            conn = duckdb.connect(path, read_only=True)
+            try:
+                names = list(razao_socials)
+                placeholders = ",".join(["?"] * len(names))
+                rows = conn.execute(f"""
+                    SELECT emp.razao_social, e.situacao_cadastral
+                    FROM companies.empresas emp
+                    JOIN companies.estabelecimentos e USING (cnpj_basico)
+                    WHERE emp.razao_social IN ({placeholders})
+                      AND e.situacao_cadastral IS NOT NULL
+                    ORDER BY emp.razao_social, e.situacao_cadastral
+                """, names).fetchall()
+                result = {}
+                for razao, cod in rows:
+                    if razao not in result:
+                        result[razao] = STATUS_MAP.get(cod, str(cod))
+                print(f"  Status lookup: {len(result)}/{len(names)} companies matched")
+                return result
+            finally:
+                conn.close()
+    print("  WARNING: no database found, skipping status lookup")
+    return {}
+
+
 def convert():
     df = pd.read_csv(INPUT_FILE)
     print(f"Converting {len(df)} relationships to JSON format...")
@@ -62,6 +93,7 @@ def convert():
 
     company_entities = {e for e in all_entities if e.upper() not in central_upper and e not in socios}
     cnae_map = load_cnae_map(company_entities)
+    status_map = load_status_map(company_entities)
 
     def node_color_size(label):
         if label.upper() in central_upper:
@@ -84,6 +116,9 @@ def convert():
         cnae = cnae_map.get(entity)
         if cnae is not None:
             node["cnae"] = cnae
+        status = status_map.get(entity)
+        if status is not None:
+            node["status"] = status
         nodes.append(node)
         node_id += 1
 
