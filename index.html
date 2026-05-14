@@ -194,6 +194,10 @@
                 flex-direction: column;
             }
 
+            .node-info.open {
+                display: flex;
+            }
+
             .node-info-header {
                 display: flex;
                 justify-content: space-between;
@@ -389,10 +393,101 @@
             .connection-item.empresa-direta { color: #88bbff; }
             .connection-item.socio { color: #c084fc; }
             .connection-item.empresa-socio { color: #fbbf24; }
+
+            /* Mobile toggle button */
+            .panel-toggle {
+                display: none;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                width: 44px;
+                height: 44px;
+                background: #030f25;
+                border: 1px solid rgb(255 255 255 / 22%);
+                border-radius: 10px;
+                cursor: pointer;
+                align-items: center;
+                justify-content: center;
+                z-index: 1001;
+                font-size: 20px;
+                color: #fff;
+            }
+
+            @media (max-width: 768px) {
+                .panel-toggle {
+                    display: flex;
+                }
+
+                .top-controls {
+                    position: fixed !important;
+                    top: auto !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    max-width: 100% !important;
+                    max-height: 75vh;
+                    border-radius: 16px 16px 0 0;
+                    border-left: none;
+                    border-right: none;
+                    border-bottom: none;
+                    transform: translateY(100%);
+                    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                    padding-top: 24px;
+                    overflow-y: auto;
+                }
+
+                .top-controls::before {
+                    content: "";
+                    display: block;
+                    width: 36px;
+                    height: 4px;
+                    background: rgba(255, 255, 255, 0.15);
+                    border-radius: 2px;
+                    margin: -16px auto 16px;
+                }
+
+                .top-controls.open {
+                    transform: translateY(0);
+                }
+
+                .node-info {
+                    position: fixed !important;
+                    top: auto !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    width: 100% !important;
+                    max-height: 75vh;
+                    border-radius: 16px 16px 0 0;
+                    border-left: none;
+                    border-right: none;
+                    border-bottom: none;
+                    transform: translateY(100%);
+                    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                    display: flex !important;
+                    padding-top: 24px;
+                }
+
+                .node-info::before {
+                    content: "";
+                    width: 36px;
+                    height: 4px;
+                    background: rgba(255, 255, 255, 0.15);
+                    border-radius: 2px;
+                    align-self: center;
+                    flex-shrink: 0;
+                    margin-bottom: 12px;
+                }
+
+                .node-info.open {
+                    transform: translateY(0);
+                }
+            }
         </style>
     </head>
     <body>
         <div class="container">
+            <button class="panel-toggle" id="toggle-controls">☰</button>
             <div class="top-controls">
                 <h1>Família Vorcaro</h1>
                 <h3>Redes societárias</h3>
@@ -460,5 +555,14 @@
         </div>
 
         <script src="dist/bundle.js"></script>
+        <script>
+            document.getElementById('toggle-controls').addEventListener('click', () => {
+                document.querySelector('.top-controls').classList.toggle('open');
+                document.getElementById('nodeInfo').classList.remove('open');
+            });
+            document.getElementById('network-canvas').addEventListener('click', () => {
+                document.querySelector('.top-controls').classList.remove('open');
+            });
+        </script>
     </body>
 </html>

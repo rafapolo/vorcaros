@@ -616,7 +616,8 @@ class FastNetworkVisualization {
       `;
     }
 
-    document.getElementById('nodeInfo').style.display = 'flex';
+    document.getElementById('nodeInfo').classList.add('open');
+    document.querySelector('.top-controls').classList.remove('open');
     document.getElementById('nodeInfoContent').innerHTML = `
       <div class="node-details">
         <div class="node-name">${node.label}</div>
@@ -636,7 +637,7 @@ class FastNetworkVisualization {
   }
 
   hideNodeInfo() {
-    document.getElementById('nodeInfo').style.display = 'none';
+    document.getElementById('nodeInfo').classList.remove('open');
   }
 
   selectNodeById(nodeId) {
