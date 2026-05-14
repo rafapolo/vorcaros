@@ -1,0 +1,13 @@
+{
+  "name": "vorcano",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.js",
+    "dev": "bun run dev.js"
+  },
+  "dependencies": {
+    "d3": "^7.9.0"
+  }
+}
