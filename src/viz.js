@@ -84,6 +84,7 @@ class FastNetworkVisualization {
     this.zoom = null;
     this.selectedNode = null;
     this.selectedConnectedIds = new Set();
+    this.cnaeFilter = null;
     this.labelPositions = [];
     this.showLabels = true;
 
@@ -221,6 +222,7 @@ class FastNetworkVisualization {
     }
 
     this.showLoading(false);
+    window.dispatchEvent(new CustomEvent('vorcano-loaded'));
   }
 
   processData() {
@@ -318,6 +320,34 @@ class FastNetworkVisualization {
     ctx.shadowBlur = 0;
 
     if (!this.selectedNode) {
+      if (this.cnaeFilter) {
+        const strokeWidth = Math.max(1, 1.5 / this.transform.k);
+        // Dim non-matching nodes
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        for (const node of this.data.nodes) {
+          if (node.cnae === this.cnaeFilter) continue;
+          ctx.moveTo(node.x + node.radius, node.y);
+          ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+        }
+        ctx.fill();
+        // Highlight matching nodes with white border
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 8;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = strokeWidth;
+        for (const node of this.data.nodes) {
+          if (node.cnae !== this.cnaeFilter) continue;
+          ctx.fillStyle = node.color;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        return;
+      }
+
       // Batch nodes by fill color
       const groups = new Map();
       for (const node of this.data.nodes) {
@@ -736,6 +766,28 @@ class FastNetworkVisualization {
       }
     };
     setTimeout(tryCenter, 300);
+  }
+
+  filterByCnae(cnaeCode) {
+    this.cnaeFilter = cnaeCode;
+    this.clearSelection();
+    if (!this.data) return [];
+    return this.data.nodes
+      .filter(n => n.cnae === cnaeCode)
+      .map(n => n.label)
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  clearCnaeFilter() {
+    this.cnaeFilter = null;
+    this.processData();
+    this.redraw();
+  }
+
+  selectNodeByLabel(label) {
+    if (!this.data) return;
+    const node = this.data.nodes.find(n => n.label === label);
+    if (node) this.selectNodeById(node.id);
   }
 
   showLoading(show) {

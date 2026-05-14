@@ -1,11 +1,17 @@
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+
+rmSync('./dist', { recursive: true, force: true });
 
 const result = await Bun.build({
   entrypoints: ['./src/main.js'],
   outdir: './dist',
   minify: true,
   target: 'browser',
-  naming: 'bundle.js',
+  naming: {
+    entry: 'bundle.[ext]',
+    chunk: '[name]-[hash].[ext]',
+    asset: '[name]-[hash].[ext]',
+  },
 });
 
 if (!result.success) {
@@ -17,9 +23,9 @@ mkdirSync('./dist/output', { recursive: true });
 cpSync('./output', './dist/output', { recursive: true });
 cpSync('./favicon.svg', './dist/favicon.svg');
 
-// dist/index.html references ./bundle.js (no dist/ prefix since it lives inside dist/)
 const html = readFileSync('./index.html', 'utf8')
-  .replace('<script src="dist/bundle.js"></script>', '<script src="./bundle.js"></script>');
+  .replace('href="dist/bundle.css"', 'href="./bundle.css"')
+  .replace('src="dist/bundle.js"', 'src="./bundle.js"');
 writeFileSync('./dist/index.html', html);
 
 console.log('Build complete → dist/');
