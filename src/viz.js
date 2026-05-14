@@ -207,6 +207,7 @@ class FastNetworkVisualization {
         this.processData();
         this.initializeSimulation();
         this.updateStats();
+        this.restoreFromUrl();
         loaded = true;
         break;
       } catch (err) {
@@ -544,6 +545,7 @@ class FastNetworkVisualization {
         if (s === node.id) this.selectedConnectedIds.add(t);
         else if (t === node.id) this.selectedConnectedIds.add(s);
       }
+      history.replaceState(null, '', '?n=' + encodeURIComponent(node.id));
     }
     this.redraw();
   }
@@ -551,6 +553,7 @@ class FastNetworkVisualization {
   clearSelection() {
     this.selectedNode = null;
     this.selectedConnectedIds = new Set();
+    history.replaceState(null, '', location.pathname);
     this.redraw();
   }
 
@@ -709,6 +712,30 @@ class FastNetworkVisualization {
 
     const total = document.getElementById('legend-total');
     if (total) total.textContent = `${this.data.nodes.length.toLocaleString()} nós · ${this.data.links.length.toLocaleString()} conexões`;
+  }
+
+  restoreFromUrl() {
+    const id = new URLSearchParams(location.search).get('n');
+    if (!id) return;
+    const node = this.data.nodes.find(n => String(n.id) === id);
+    if (!node) return;
+    // Wait for the simulation to settle before centering
+    const tryCenter = () => {
+      if (node.x !== undefined && node.y !== undefined) {
+        this.selectNode(node);
+        this.showNodeInfo(node);
+        const scale = 1.5;
+        select(this.canvas).call(
+          this.zoom.transform,
+          zoomIdentity
+            .translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale)
+            .scale(scale)
+        );
+      } else {
+        setTimeout(tryCenter, 100);
+      }
+    };
+    setTimeout(tryCenter, 300);
   }
 
   showLoading(show) {
