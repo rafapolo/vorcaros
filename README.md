@@ -1,5 +1,9 @@
 # Família Vorcaro — Redes Societárias
 
+<p align="center">
+  <img src="demo.jpg" alt="Demo" width="100%">
+</p>
+
 Visualização interativa da rede societária da família Vorcaro em dois graus: as empresas onde Henrique e Daniel Vorcaro são sócios, os demais sócios dessas empresas, e as outras empresas onde esses sócios participam.
 
 O grafo é renderizado em canvas com simulação de forças (d3-force), permitindo explorar conexões entre milhares de nós com performance fluida. Clicar em qualquer nó revela suas conexões diretas, o tipo de vínculo societário (sócio, administrador, diretor etc.) e permite navegar de nó em nó.
