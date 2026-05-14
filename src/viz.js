@@ -600,7 +600,7 @@ class FastNetworkVisualization {
         let qualText = '';
         if (linkBetween?.qualificacao_socio !== undefined) {
           const desc = this.getQualificacaoDescription(linkBetween.qualificacao_socio);
-          qualText = ` — ${desc}`;
+          qualText = desc;
         }
 
         return `<li class="${cls}" data-node-id="${cn.id}">${cn.label}<span class="connection-meta">${qualText}</span></li>`;
