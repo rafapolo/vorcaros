@@ -88,7 +88,10 @@ class FastNetworkVisualization {
     this.cnaeFilter = null;
     this.statusFilters = new Set();
     this.labelPositions = [];
+    this.navHistory = [];
+    this.navIndex = -1;
     this.showLabels = true;
+    this.showEmpresasSocios = false;
 
     this.simulationParams = {
       linkDistance: 145,
@@ -123,13 +126,29 @@ class FastNetworkVisualization {
   }
 
   setupEventListeners() {
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      this.searchNodes(e.target.value.toLowerCase());
+    let searchDebounce = null;
+    const searchEl = document.getElementById('searchInput');
+    searchEl.addEventListener('input', (e) => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        this.searchNodes(e.target.value.toLowerCase());
+      }, 300);
+    });
+    searchEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        clearTimeout(searchDebounce);
+        this.searchNodes(e.target.value.toLowerCase());
+      }
     });
 
     document.getElementById('showLabelsToggle').addEventListener('change', (e) => {
       this.showLabels = e.target.checked;
       this.redraw();
+    });
+
+    document.getElementById('showEmpresasSociosToggle').addEventListener('change', (e) => {
+      this.showEmpresasSocios = e.target.checked;
+      this.updateSimulationData();
     });
 
     this.zoom = zoom()
@@ -140,6 +159,41 @@ class FastNetworkVisualization {
       });
 
     select(this.canvas).call(this.zoom);
+
+    this.tooltip = document.createElement('div');
+    this.tooltip.className = 'node-tooltip';
+    document.body.appendChild(this.tooltip);
+
+    this.canvas.addEventListener('mousemove', (event) => {
+      if (!this.data) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const cx = (event.clientX - rect.left - this.transform.x) / this.transform.k;
+      const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
+      let nearest = null;
+      let minDist = Infinity;
+      for (const node of this.data.nodes) {
+        if (!this.showEmpresasSocios && this.isOrangeNode(node)) continue;
+        const dx = cx - node.x;
+        const dy = cy - node.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d <= node.radius + 4 && d < minDist) { nearest = node; minDist = d; }
+      }
+      if (nearest) {
+        this.tooltip.textContent = nearest.label;
+        this.tooltip.style.left = (event.clientX + 14) + 'px';
+        this.tooltip.style.top  = (event.clientY - 8) + 'px';
+        this.tooltip.classList.add('visible');
+        this.canvas.style.cursor = 'pointer';
+      } else {
+        this.tooltip.classList.remove('visible');
+        this.canvas.style.cursor = '';
+      }
+    });
+
+    this.canvas.addEventListener('mouseleave', () => {
+      this.tooltip.classList.remove('visible');
+      this.canvas.style.cursor = '';
+    });
 
     this.canvas.addEventListener('click', (event) => {
       if (!this.data) return;
@@ -184,6 +238,35 @@ class FastNetworkVisualization {
       this.hideNodeInfo();
       this.clearSelection();
     });
+
+    document.getElementById('navBack').addEventListener('click', () => this.navigateBack());
+    document.getElementById('navFwd').addEventListener('click', () => this.navigateFwd());
+  }
+
+  isOrangeNode(node) {
+    return (node.originalColor || node.color) === '#ffa500';
+  }
+
+  updateSimulationData() {
+    const orangeIds = new Set(
+      this.data.nodes.filter(n => this.isOrangeNode(n)).map(n => n.id)
+    );
+
+    const nodes = this.showEmpresasSocios
+      ? this.data.nodes
+      : this.data.nodes.filter(n => !orangeIds.has(n.id));
+
+    const links = this.showEmpresasSocios
+      ? this.data.links
+      : this.data.links.filter(l => {
+          const s = typeof l.source === 'object' ? l.source.id : l.source;
+          const t = typeof l.target === 'object' ? l.target.id : l.target;
+          return !orangeIds.has(s) && !orangeIds.has(t);
+        });
+
+    this.simulation.nodes(nodes);
+    this.simulation.force('link').links(links);
+    this.simulation.alpha(0.5).restart();
   }
 
   getQualificacaoDescription(codigo) {
@@ -209,6 +292,7 @@ class FastNetworkVisualization {
         console.log(`Loaded: ${this.data.nodes.length} nodes, ${this.data.links.length} links`);
         this.processData();
         this.initializeSimulation();
+        this.updateSimulationData();
         this.updateStats();
         this.restoreFromUrl();
         loaded = true;
@@ -288,12 +372,16 @@ class FastNetworkVisualization {
     const ctx = this.context;
     ctx.shadowBlur = 0;
 
+    const linkHidden = link =>
+      !this.showEmpresasSocios && (this.isOrangeNode(link.source) || this.isOrangeNode(link.target));
+
     // Batch all non-highlighted links in one path
     ctx.globalAlpha = this.visualParams.linkOpacity;
     ctx.strokeStyle = '#666';
     ctx.lineWidth = this.visualParams.linkWidth;
     ctx.beginPath();
     for (const link of this.data.links) {
+      if (linkHidden(link)) continue;
       if (this.selectedNode && (link.source.id === this.selectedNode.id || link.target.id === this.selectedNode.id)) continue;
       ctx.moveTo(link.source.x, link.source.y);
       ctx.lineTo(link.target.x, link.target.y);
@@ -308,6 +396,7 @@ class FastNetworkVisualization {
       ctx.shadowBlur = 10;
       ctx.beginPath();
       for (const link of this.data.links) {
+        if (linkHidden(link)) continue;
         if (link.source.id !== this.selectedNode.id && link.target.id !== this.selectedNode.id) continue;
         ctx.moveTo(link.source.x, link.source.y);
         ctx.lineTo(link.target.x, link.target.y);
@@ -322,6 +411,8 @@ class FastNetworkVisualization {
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 
+    const nodeHidden = node => !this.showEmpresasSocios && this.isOrangeNode(node);
+
     if (!this.selectedNode) {
       const hasStatusFilter = this.statusFilters.size > 0;
       if (this.cnaeFilter || hasStatusFilter) {
@@ -334,7 +425,7 @@ class FastNetworkVisualization {
         ctx.fillStyle = '#333';
         ctx.beginPath();
         for (const node of this.data.nodes) {
-          if (isMatch(node)) continue;
+          if (nodeHidden(node) || isMatch(node)) continue;
           ctx.moveTo(node.x + node.radius, node.y);
           ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
         }
@@ -346,7 +437,7 @@ class FastNetworkVisualization {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = strokeWidth;
         for (const node of this.data.nodes) {
-          if (!isMatch(node)) continue;
+          if (nodeHidden(node) || !isMatch(node)) continue;
           ctx.beginPath();
           ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
           ctx.fill();
@@ -359,7 +450,7 @@ class FastNetworkVisualization {
       // Batch non-highlighted nodes by fill color
       const groups = new Map();
       for (const node of this.data.nodes) {
-        if (node.highlighted) continue;
+        if (nodeHidden(node) || node.highlighted) continue;
         let arr = groups.get(node.color);
         if (!arr) { arr = []; groups.set(node.color, arr); }
         arr.push(node);
@@ -375,7 +466,7 @@ class FastNetworkVisualization {
       }
 
       // Search match nodes with green glow
-      const highlighted = this.data.nodes.filter(n => n.highlighted);
+      const highlighted = this.data.nodes.filter(n => !nodeHidden(n) && n.highlighted);
       if (highlighted.length) {
         const strokeWidth = Math.max(1, 1.5 / this.transform.k);
         ctx.shadowColor = '#00ff88';
@@ -399,6 +490,7 @@ class FastNetworkVisualization {
     // Batch unrelated nodes by color
     const groups = new Map();
     for (const node of this.data.nodes) {
+      if (nodeHidden(node)) continue;
       if (node.id === this.selectedNode.id || this.selectedConnectedIds.has(node.id)) continue;
       let arr = groups.get(node.color);
       if (!arr) { arr = []; groups.set(node.color, arr); }
@@ -421,6 +513,7 @@ class FastNetworkVisualization {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = strokeWidth;
     for (const node of this.data.nodes) {
+      if (nodeHidden(node)) continue;
       if (node.id === this.selectedNode.id || !this.selectedConnectedIds.has(node.id)) continue;
       const r = node.radius * 1.4;
       ctx.beginPath();
@@ -429,7 +522,7 @@ class FastNetworkVisualization {
       ctx.stroke();
     }
 
-    // Selected node
+    // Selected node (show even if orange — user explicitly selected it)
     ctx.shadowColor = '#ffff00';
     ctx.shadowBlur = 15;
     ctx.fillStyle = '#ffff00';
@@ -447,6 +540,7 @@ class FastNetworkVisualization {
     const z = this.transform.k;
 
     const labelsToShow = this.data.nodes.filter(node => {
+      if (!this.showEmpresasSocios && this.isOrangeNode(node)) return false;
       if (this.showLabels) {
         if (z > 3.0) return node.radius >= 3;
         if (z > 1.5) return node.radius >= 5;
@@ -614,7 +708,49 @@ class FastNetworkVisualization {
     this.redraw();
   }
 
-  showNodeInfo(node) {
+  pushNav(nodeId) {
+    if (this.navHistory[this.navIndex] === nodeId) return;
+    this.navHistory = this.navHistory.slice(0, this.navIndex + 1);
+    this.navHistory.push(nodeId);
+    this.navIndex = this.navHistory.length - 1;
+    this.updateNavButtons();
+  }
+
+  updateNavButtons() {
+    const back = document.getElementById('navBack');
+    const fwd  = document.getElementById('navFwd');
+    if (back) back.disabled = this.navIndex <= 0;
+    if (fwd)  fwd.disabled  = this.navIndex >= this.navHistory.length - 1;
+  }
+
+  navigateBack() {
+    if (this.navIndex <= 0) return;
+    this.navIndex--;
+    this._goToHistoryNode();
+  }
+
+  navigateFwd() {
+    if (this.navIndex >= this.navHistory.length - 1) return;
+    this.navIndex++;
+    this._goToHistoryNode();
+  }
+
+  _goToHistoryNode() {
+    const nodeId = this.navHistory[this.navIndex];
+    const node = this.data?.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    this.selectNode(node);
+    this.showNodeInfo(node, false);
+    const scale = Math.max(1, this.transform.k);
+    select(this.canvas).transition().duration(500).call(
+      this.zoom.transform,
+      zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
+    );
+    this.updateNavButtons();
+  }
+
+  showNodeInfo(node, pushHistory = true) {
+    if (pushHistory) this.pushNav(node.id);
     const connectedNodes = [];
 
     for (const link of this.data.links) {
@@ -699,7 +835,7 @@ class FastNetworkVisualization {
       ${connectionsHtml}
     `;
 
-    document.querySelectorAll('.connection-item[data-node-id]').forEach(item => {
+    document.querySelectorAll('#nodeInfoContent .connection-item[data-node-id]').forEach(item => {
       item.addEventListener('click', (e) => {
         e.stopPropagation();
         const nodeId = item.getAttribute('data-node-id');
@@ -738,6 +874,7 @@ class FastNetworkVisualization {
       if (countEl) countEl.textContent = '';
       this.processData();
       this.redraw();
+      document.getElementById('nodeInfo').classList.remove('open');
       return;
     }
 
@@ -746,6 +883,7 @@ class FastNetworkVisualization {
     if (matches.length === 0) {
       this.processData();
       this.redraw();
+      document.getElementById('nodeInfo').classList.remove('open');
       return;
     }
 
@@ -763,6 +901,7 @@ class FastNetworkVisualization {
     }
 
     this.redraw();
+    this.showSearchResults(matches, searchTerm);
 
     const node = matches[0];
     select(this.canvas)
@@ -774,6 +913,36 @@ class FastNetworkVisualization {
           .translate(this.width / 2 - node.x * 1.5, this.height / 2 - node.y * 1.5)
           .scale(1.5)
       );
+  }
+
+  showSearchResults(matches, searchTerm) {
+    const items = matches
+      .slice().sort((a, b) => a.label.localeCompare(b.label))
+      .map(node => {
+        const color = node.originalColor || node.color;
+        let cls = 'connection-item';
+        if (color === '#ff0000')      cls += ' henrique';
+        else if (color === '#4488ff') cls += ' empresa-direta';
+        else if (color === '#800080') cls += ' socio';
+        else                          cls += ' empresa-socio';
+        return `<li class="${cls}" data-node-id="${node.id}">${node.label}</li>`;
+      }).join('');
+
+    document.getElementById('nodeInfoTitle').textContent = 'Detalhes';
+    document.getElementById('nodeInfo').classList.add('open');
+    document.getElementById('nodeInfoContent').innerHTML = `
+      <div class="node-name" style="font-size:15px;margin-bottom:10px">${searchTerm}</div>
+      <div class="node-type-row" style="margin-bottom:15px">
+        <span class="node-type cnae-tag">${matches.length} resultado${matches.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="connections-section" style="border-top:none;padding-top:0">
+        <ul class="connections-list">${items}</ul>
+      </div>
+    `;
+
+    document.querySelectorAll('#nodeInfoContent .connection-item[data-node-id]').forEach(el => {
+      el.addEventListener('click', () => this.selectNodeById(Number(el.dataset.nodeId)));
+    });
   }
 
   updateStats() {

@@ -199,7 +199,7 @@ input[type="text"] {
     padding: 10px 12px;
     border-radius: 6px;
     width: 100%;
-    font-size: 15px;
+    font-size: 13px;
     font-family: "Monda", sans-serif;
     backdrop-filter: blur(10px);
 }
@@ -216,22 +216,53 @@ input[type="text"]::placeholder {
 
 .toggle-container {
     margin: 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .toggle-label {
     display: flex;
     align-items: center;
+    gap: 8px;
     cursor: pointer;
     font-size: 13px;
     color: rgba(255, 255, 255, 0.8);
 }
 
 .toggle-label input[type="checkbox"] {
-    width: 16px;
+    display: none;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 30px;
     height: 16px;
-    margin-right: 8px;
-    cursor: pointer;
-    accent-color: #4488ff;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-switch {
+    background: #4488ff;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
+    transform: translateX(14px);
+    background: #fff;
 }
 
 .toggle-text {
@@ -286,6 +317,26 @@ input[type="text"]::placeholder {
     color: rgba(255, 255, 255, 0.45);
     text-align: center;
     font-family: "Monda", monospace;
+}
+
+.node-tooltip {
+    position: fixed;
+    z-index: 2000;
+    background: #030f25;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff;
+    font-family: "Monda", sans-serif;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.node-tooltip.visible {
+    opacity: 1;
 }
 
 .loading {
@@ -343,6 +394,37 @@ input[type="text"]::placeholder {
     font-size: 15px;
     color: #fff;
     font-weight: 700;
+}
+
+.node-nav-btns {
+    display: flex;
+    gap: 2px;
+}
+
+.node-nav-btns button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.15s;
+}
+
+.node-nav-btns button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.node-nav-btns button:disabled {
+    opacity: 0.25;
+    cursor: default;
 }
 
 #closeNodeInfo {

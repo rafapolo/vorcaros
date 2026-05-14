@@ -30,7 +30,13 @@
                     <div class="toggle-container">
                         <label class="toggle-label">
                             <input type="checkbox" id="showLabelsToggle" checked />
+                            <span class="toggle-switch"></span>
                             <span class="toggle-text">Mostrar nomes</span>
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="showEmpresasSociosToggle" />
+                            <span class="toggle-switch"></span>
+                            <span class="toggle-text">Empresas dos sócios</span>
                         </label>
                     </div>
 
@@ -82,6 +88,10 @@
 
             <div class="node-info" id="nodeInfo">
                 <div class="node-info-header">
+                    <div class="node-nav-btns">
+                        <button id="navBack" disabled>&#8592;</button>
+                        <button id="navFwd" disabled>&#8594;</button>
+                    </div>
                     <h3 id="nodeInfoTitle">Detalhes</h3>
                     <button id="closeNodeInfo">×</button>
                 </div>
