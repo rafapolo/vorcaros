@@ -168,7 +168,7 @@ function initStatusPanel() {
   });
 }
 
-window.addEventListener('vorcano-loaded', () => {
+window.addEventListener('vorcaro-loaded', () => {
   const nodes = window.networkViz?.data?.nodes;
   if (nodes) {
     const cnaeCounts = new Map();

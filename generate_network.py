@@ -10,7 +10,7 @@ DB_PATHS = [
     "/path/to/empresas.duckdb",
     "/path/to/empresas/db/empresas.duckdb",
 ]
-OUTPUT_FILE = "output/network_vorcano.csv"
+OUTPUT_FILE = "output/network_vorcaro.csv"
 
 # Each entry: partial name to search (ILIKE match)
 TARGET_NAMES = [

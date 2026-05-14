@@ -5,8 +5,8 @@ import duckdb
 import json
 from pathlib import Path
 
-INPUT_FILE = "output/network_vorcano.csv"
-OUTPUT_FILE = "output/network_vorcano_cosmograph.json"
+INPUT_FILE = "output/network_vorcaro.csv"
+OUTPUT_FILE = "output/network_vorcaro_cosmograph.json"
 DB_PATHS = [
     "/path/to/empresas.duckdb",
     "/path/to/empresas/db/empresas.duckdb",

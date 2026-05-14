@@ -177,6 +177,21 @@ body {
     text-align: center;
 }
 
+.search-wrapper {
+    position: relative;
+}
+
+.search-count {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #00ff88;
+    font-family: "Monda", monospace;
+    pointer-events: none;
+}
+
 input[type="text"] {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;

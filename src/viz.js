@@ -194,9 +194,9 @@ class FastNetworkVisualization {
     this.showLoading(true);
 
     const paths = [
-      'output/network_vorcano_cosmograph.json',
-      './output/network_vorcano_cosmograph.json',
-      'network_vorcano_cosmograph.json',
+      'output/network_vorcaro_cosmograph.json',
+      './output/network_vorcaro_cosmograph.json',
+      'network_vorcaro_cosmograph.json',
     ];
 
     let loaded = false;
@@ -224,7 +224,7 @@ class FastNetworkVisualization {
     }
 
     this.showLoading(false);
-    window.dispatchEvent(new CustomEvent('vorcano-loaded'));
+    window.dispatchEvent(new CustomEvent('vorcaro-loaded'));
   }
 
   processData() {
@@ -733,13 +733,16 @@ class FastNetworkVisualization {
   }
 
   searchNodes(searchTerm) {
+    const countEl = document.getElementById('searchCount');
     if (!this.data || !searchTerm.trim()) {
+      if (countEl) countEl.textContent = '';
       this.processData();
       this.redraw();
       return;
     }
 
     const matches = this.data.nodes.filter(node => node.label.toLowerCase().includes(searchTerm));
+    if (countEl) countEl.textContent = matches.length || '';
     if (matches.length === 0) {
       this.processData();
       this.redraw();
