@@ -15,6 +15,7 @@ if (!result.success) {
 
 mkdirSync('./dist/output', { recursive: true });
 cpSync('./output', './dist/output', { recursive: true });
+cpSync('./favicon.svg', './dist/favicon.svg');
 
 // dist/index.html references ./bundle.js (no dist/ prefix since it lives inside dist/)
 const html = readFileSync('./index.html', 'utf8')
