@@ -7,8 +7,8 @@ import re
 from pathlib import Path
 
 DB_PATHS = [
-    "/path/to/empresas.duckdb",
-    "/path/to/empresas/db/empresas.duckdb",
+    "../empresas/empresas.duckdb",
+    "../empresas/db/empresas.duckdb",
 ]
 OUTPUT_FILE = "output/network_vorcaro.csv"
 

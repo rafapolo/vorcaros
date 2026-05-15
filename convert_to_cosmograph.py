@@ -8,8 +8,8 @@ from pathlib import Path
 INPUT_FILE = "output/network_vorcaro.csv"
 OUTPUT_FILE = "output/network_vorcaro_cosmograph.json"
 DB_PATHS = [
-    "/path/to/empresas.duckdb",
-    "/path/to/empresas/db/empresas.duckdb",
+    "../empresas/empresas.duckdb",
+    "../empresas/db/empresas.duckdb",
 ]
 
 CENTRAL_PERSONS = {
