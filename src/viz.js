@@ -759,7 +759,7 @@ class FastNetworkVisualization {
     if (cnaeTagEl) {
       cnaeTagEl.addEventListener('click', (e) => {
         e.stopPropagation();
-        const code = cnaeTagEl.dataset.cnae;
+        const code = +cnaeTagEl.dataset.cnae;
         const desc = CNAE_LABELS.get(code);
         const labels = this.filterByCnae(code);
         this.showCnaeInfo(code, desc, labels);
