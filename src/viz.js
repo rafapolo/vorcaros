@@ -881,11 +881,16 @@ class FastNetworkVisualization {
     if (!id) return;
     const node = this.nodeById.get(+id) ?? this.nodeById.get(id);
     if (!node) return;
-    // Select node and show info panel as soon as first positions arrive
+    // Select node, show info panel, and do initial centering as soon as first positions arrive
     const trySelect = () => {
       if (node.x !== undefined && node.y !== undefined) {
         this.selectNode(node);
         this.showNodeInfo(node);
+        const scale = 0.6;
+        select(this.canvas).call(
+          this.zoom.transform,
+          zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
+        );
       } else { setTimeout(trySelect, 100); }
     };
     setTimeout(trySelect, 300);
