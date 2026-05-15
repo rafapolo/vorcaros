@@ -4,7 +4,7 @@
   <img src="demo.jpg" alt="Demo" width="100%">
 </p>
 
-Visualização interativa da rede societária da família Vorcaro em dois graus: as empresas onde Henrique e Daniel Vorcaro são sócios, os demais sócios dessas empresas, e as outras empresas onde esses sócios participam.
+Visualização interativa da rede societária da família Vorcaro em dois graus: as empresas onde Daniel, Henrique, Natalia, Aline e Felipe Vorcaro são sócios, os demais sócios dessas empresas, e as outras empresas onde esses sócios participam.
 
 O grafo é renderizado em canvas com simulação de forças (d3-force) rodando em Web Worker, permitindo explorar conexões entre milhares de nós com performance fluida. Clicar em qualquer nó revela suas conexões diretas, o tipo de vínculo societário (sócio, administrador, diretor etc.) e permite navegar de nó em nó.
 
@@ -12,14 +12,14 @@ O grafo é renderizado em canvas com simulação de forças (d3-force) rodando e
 
 | Cor | Nó |
 |-----|----|
-| Vermelho | Henrique & Daniel Vorcaro |
+| Vermelho | Daniel, Henrique, Natalia, Aline & Felipe Vorcaro |
 | Azul | Empresas onde são sócios diretos |
 | Roxo | Demais sócios dessas empresas |
 | Laranja | Empresas dos sócios |
 
 ## Stack
 
-- **Dados**: CNPJ público, processado via Python (`generate_network.py` + `convert_to_cosmograph.py`)
+- **Dados**: CNPJ público, processado via Python (`generate_network.py`)
 - **Visualização**: d3-force + Canvas 2D (dual canvas — links e nós em camadas separadas)
 - **Física**: Web Worker dedicado (`simulation-worker.js`) — posições transferidas via `Float32Array` sem cópia
 - **Build**: Bun — tree-shaking do d3, bundle principal + worker compilados em paralelo

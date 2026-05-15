@@ -179,14 +179,17 @@ body {
 }
 
 .search-wrapper {
-    position: relative;
     border-top: 1px solid var(--dim-border);
     padding: 14px 14px 5px;
 }
 
+.search-row {
+    position: relative;
+}
+
 .search-clear {
     position: absolute;
-    right: 28px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -208,12 +211,12 @@ body {
 }
 
 .search-wrapper.has-value .search-count {
-    right: 52px;
+    right: 38px;
 }
 
 .search-count {
     position: absolute;
-    right: 30px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     font-size: 11px;
