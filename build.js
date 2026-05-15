@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync } from 'node:fs';
 
 rmSync('./dist', { recursive: true, force: true });
 
@@ -36,9 +36,14 @@ mkdirSync('./dist/output', { recursive: true });
 cpSync('./output', './dist/output', { recursive: true });
 cpSync('./favicon.svg', './dist/favicon.svg');
 
-const html = readFileSync('./index.html', 'utf8')
+const html = await Bun.file('./index.html').text();
+await Bun.write('./dist/index.html', html
   .replace('href="dist/bundle.css"', 'href="./bundle.css"')
-  .replace('src="dist/bundle.js"', 'src="./bundle.js"');
-writeFileSync('./dist/index.html', html);
+  .replace('src="dist/bundle.js"', 'src="./bundle.js"'));
 
-console.log('Build complete → dist/');
+const kb = n => (n / 1024).toFixed(1);
+const [bSize, wSize] = await Promise.all([
+  Bun.file('./dist/bundle.js').size,
+  Bun.file('./dist/simulation-worker.js').size,
+]);
+console.log(`Build complete → dist/  bundle: ${kb(bSize)} KB · worker: ${kb(wSize)} KB`);

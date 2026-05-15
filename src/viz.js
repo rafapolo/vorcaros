@@ -183,10 +183,9 @@ class FastNetworkVisualization {
   redraw() { this._dirty = true; this._linksDirty = true; }
 
   _resolveLinks() {
-    const nodeMap = new Map(this.data.nodes.map(n => [n.id, n]));
     for (const link of this.data.links) {
-      if (typeof link.source !== 'object') link.source = nodeMap.get(link.source);
-      if (typeof link.target !== 'object') link.target = nodeMap.get(link.target);
+      if (typeof link.source !== 'object') link.source = this.nodeById.get(link.source);
+      if (typeof link.target !== 'object') link.target = this.nodeById.get(link.target);
     }
   }
 
@@ -357,12 +356,15 @@ class FastNetworkVisualization {
     history.replaceState({ navIndex: -1 }, '', location.href);
   }
 
+  buildNodeMaps() {
+    this.nodeById    = new Map(this.data.nodes.map(n => [n.id, n]));
+    this.nodeByLabel = new Map(this.data.nodes.map(n => [n.label, n]));
+  }
+
   buildAdjacency() {
     this.adjacency = new Map();
     for (const link of this.data.links) {
-      const s = typeof link.source === 'object' ? link.source : this.data.nodes.find(n => n.id === link.source);
-      const t = typeof link.target === 'object' ? link.target : this.data.nodes.find(n => n.id === link.target);
-      if (!s || !t) continue;
+      const { source: s, target: t } = link;
       if (!this.adjacency.has(s.id)) this.adjacency.set(s.id, []);
       if (!this.adjacency.has(t.id)) this.adjacency.set(t.id, []);
       this.adjacency.get(s.id).push({ neighbor: t, link });
@@ -385,6 +387,7 @@ class FastNetworkVisualization {
         this.data = await response.json();
         console.log(`Loaded: ${this.data.nodes.length} nodes, ${this.data.links.length} links`);
         this.processData();
+        this.buildNodeMaps();
         this._initWorker();    // must come before _resolveLinks (needs raw IDs)
         this._resolveLinks();
         this.buildAdjacency();
@@ -411,10 +414,10 @@ class FastNetworkVisualization {
       if (!node.originalColor) { node.originalColor = node.color; node.originalSize = node.size; }
       else { node.color = node.originalColor; node.size = node.originalSize; }
       switch (node.color) {
-        case '#ff0000': node.radius = 14; node.originalRadius = 14; break;
-        case '#4488ff': node.radius = 11; node.originalRadius = 11; break;
-        case '#800080': node.radius = 9;  node.originalRadius = 9;  break;
-        default:        node.radius = 7;  node.originalRadius = 7;  break;
+        case '#ff0000': node.radius = 20; node.originalRadius = 20; break;
+        case '#4488ff': node.radius = 15; node.originalRadius = 15; break;
+        case '#800080': node.radius = 10; node.originalRadius = 10; break;
+        default:        node.radius = 5;  node.originalRadius = 5;  break;
       }
       node.isHenrique = node.color === '#ff0000';
       node.isOrange   = node.originalColor === '#ffa500';
@@ -678,7 +681,7 @@ class FastNetworkVisualization {
     const state = this.navHistory[this.navIndex];
     if (!state) return;
     if (state.type === 'node') {
-      const node = this.data?.nodes.find(n => n.id === state.id);
+      const node = this.nodeById?.get(state.id);
       if (!node) return;
       this.selectNode(node);
       this.showNodeInfo(node, false);
@@ -767,8 +770,8 @@ class FastNetworkVisualization {
     document.querySelectorAll('#nodeInfoContent .connection-item[data-node-id]').forEach(item => {
       item.addEventListener('click', (e) => {
         e.stopPropagation();
-        const nodeId = item.getAttribute('data-node-id');
-        const target = this.data.nodes.find(n => String(n.id) === nodeId);
+        const raw = item.getAttribute('data-node-id');
+        const target = this.nodeById.get(+raw) ?? this.nodeById.get(raw);
         if (target) this.selectNodeById(target.id);
       });
     });
@@ -777,7 +780,7 @@ class FastNetworkVisualization {
   hideNodeInfo() { document.getElementById('nodeInfo').classList.remove('open'); }
 
   selectNodeById(nodeId) {
-    const node = this.data.nodes.find(n => n.id === nodeId);
+    const node = this.nodeById.get(nodeId) ?? this.nodeById.get(+nodeId);
     if (!node) return;
     this.selectNode(node);
     this.showNodeInfo(node);
@@ -807,9 +810,8 @@ class FastNetworkVisualization {
     }
     const matchIds = new Set(matches.map(n => n.id));
     const connectedIds = new Set();
-    for (const link of this.data.links) {
-      if (matchIds.has(link.source.id)) connectedIds.add(link.target.id);
-      if (matchIds.has(link.target.id)) connectedIds.add(link.source.id);
+    for (const id of matchIds) {
+      for (const { neighbor } of (this.adjacency.get(id) ?? [])) connectedIds.add(neighbor.id);
     }
     for (const node of this.data.nodes) {
       if (matchIds.has(node.id))          { node.color = '#00ff88'; node.highlighted = true;  node.radius = 10; }
@@ -851,17 +853,25 @@ class FastNetworkVisualization {
   }
 
   updateStats() {
+    let red = 0, blue = 0, purple = 0, orange = 0;
+    for (const n of this.data.nodes) {
+      const c = n.originalColor || n.color;
+      if      (c === '#ff0000') red++;
+      else if (c === '#4488ff') blue++;
+      else if (c === '#800080') purple++;
+      else if (c === '#ffa500') orange++;
+    }
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val.toLocaleString(); };
-    set('count-henrique', this.data.nodes.filter(n => (n.originalColor || n.color) === '#ff0000').length);
-    set('count-blue',     this.data.nodes.filter(n => (n.originalColor || n.color) === '#4488ff').length);
-    set('count-purple',   this.data.nodes.filter(n => (n.originalColor || n.color) === '#800080').length);
-    set('count-orange',   this.data.nodes.filter(n => (n.originalColor || n.color) === '#ffa500').length);
+    set('count-henrique', red);
+    set('count-blue',     blue);
+    set('count-purple',   purple);
+    set('count-orange',   orange);
   }
 
   restoreFromUrl() {
     const id = new URLSearchParams(location.search).get('n');
     if (!id) return;
-    const node = this.data.nodes.find(n => String(n.id) === id);
+    const node = this.nodeById.get(+id) ?? this.nodeById.get(id);
     if (!node) return;
     const tryCenter = () => {
       if (node.x !== undefined && node.y !== undefined) {
@@ -904,7 +914,10 @@ class FastNetworkVisualization {
       <div class="connections-section" style="border-top:none;padding-top:0"><ul class="connections-list">${items}</ul></div>
     `;
     document.querySelectorAll('#nodeInfoContent .connection-item[data-label]').forEach(el => {
-      el.addEventListener('click', () => this.selectNodeByLabel(el.dataset.label));
+      el.addEventListener('click', () => {
+        const node = this.nodeByLabel.get(el.dataset.label);
+        if (node) this.selectNodeById(node.id);
+      });
     });
   }
 
@@ -929,8 +942,7 @@ class FastNetworkVisualization {
   }
 
   selectNodeByLabel(label) {
-    if (!this.data) return;
-    const node = this.data.nodes.find(n => n.label === label);
+    const node = this.nodeByLabel?.get(label);
     if (node) this.selectNodeById(node.id);
   }
 

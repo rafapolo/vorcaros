@@ -218,7 +218,7 @@ body {
     transform: translateY(-50%);
     font-size: 11px;
     color: #00ff88;
-    font-family: "Monda", monospace;
+    font-family: "Monda", sans-serif;
     pointer-events: none;
 }
 
@@ -373,16 +373,7 @@ input[type="text"]::placeholder {
     border: 1px solid #4488ff;
 }
 
-#links-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: block;
-    background: radial-gradient(circle, #071736, #0f0d0d);
-}
-
+#links-canvas,
 #network-canvas {
     position: absolute;
     top: 0;
@@ -390,8 +381,9 @@ input[type="text"]::placeholder {
     width: 100vw;
     height: 100vh;
     display: block;
-    background: transparent;
 }
+
+#links-canvas { background: radial-gradient(circle, #071736, #0f0d0d); }
 
 .node-info {
     position: absolute;
@@ -491,7 +483,6 @@ input[type="text"]::placeholder {
     color: rgba(255, 255, 255, 0.9);
     scroll-behavior: smooth;
     min-height: 0;
-    height: 100%;
 }
 
 .node-name {
@@ -636,6 +627,7 @@ input[type="text"]::placeholder {
     display: block;
     position: relative;
     list-style: none;
+    will-change: transform;
 }
 
 .connection-item::before {
@@ -652,9 +644,7 @@ input[type="text"]::placeholder {
 }
 
 .connection-item:hover {
-    color: #00ff88;
-    background: var(--hover-bg, rgba(0, 255, 136, 0.1));
-    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .connection-item:last-child { border-bottom: none; }

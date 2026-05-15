@@ -137,7 +137,6 @@ function toggleCnae(code, desc, row) {
   window.networkViz?.showCnaeInfo(code, desc, labels);
 }
 
-// Mutable sorted copy of the CNAE data for virtual scrolling
 let sortedData = CNAE_DATA.map(([code, desc, cnt]) => ({ code, desc, cnt }));
 const ROW_H = 30;
 const OVERSCAN = 4;
@@ -145,7 +144,7 @@ const OVERSCAN = 4;
 let listEl = null;
 let spacerEl = null;
 let viewportEl = null;
-const renderedRows = new Map(); // sortedIndex → { el, code }
+const renderedRows = new Map();
 
 function renderVisible() {
   if (!listEl) return;
@@ -220,14 +219,10 @@ window.addEventListener('vorcaro-loaded', () => {
       if (n.status)       statusCounts.set(n.status, (statusCounts.get(n.status) ?? 0) + 1);
     }
 
-    // Update counts and re-sort the virtual list data
-    for (const item of sortedData) {
-      item.cnt = cnaeCounts.get(item.code) ?? 0;
-    }
+    for (const item of sortedData) item.cnt = cnaeCounts.get(item.code) ?? 0;
     sortedData.sort((a, b) => b.cnt - a.cnt);
     spacerEl.style.height = (sortedData.length * ROW_H) + 'px';
 
-    // Clear rendered rows and re-render with updated sort order
     for (const { el } of renderedRows.values()) viewportEl.removeChild(el);
     renderedRows.clear();
     rowRefs.clear();
