@@ -4,6 +4,16 @@ import {
 } from 'd3';
 import { CNAE_LABELS } from './cnae-labels.js';
 
+const _hslCache = new Map();
+function cnaeDescToHsl(str) {
+  if (_hslCache.has(str)) return _hslCache.get(str);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  const v = `hsla(${Math.abs(h) % 360}, 55%, 55%, 0.15)`;
+  _hslCache.set(str, v);
+  return v;
+}
+
 const QUALIFICACAO_MAP = {
   0: "Não informada",
   5: "Administrador",
@@ -90,8 +100,10 @@ class FastNetworkVisualization {
     this.labelPositions = [];
     this.navHistory = [];
     this.navIndex = -1;
+    this._skipNextPopstate = false;
     this.showLabels = true;
     this.showEmpresasSocios = false;
+    this.adjacency = null;
 
     this.simulationParams = {
       linkDistance: 145,
@@ -143,6 +155,14 @@ class FastNetworkVisualization {
 
     document.getElementById('showLabelsToggle').addEventListener('change', (e) => {
       this.showLabels = e.target.checked;
+      if (this.simulation) {
+        const dist = this.showLabels ? this.simulationParams.linkDistance : 60;
+        const colR = this.showLabels ? d => d.radius + 40 : d => d.radius + 2;
+        this.simulation
+          .force('link', forceLink(this.data.links).id(d => d.id).distance(dist).strength(this.simulationParams.linkStrength))
+          .force('collision', forceCollide().radius(colR))
+          .alpha(0.5).restart();
+      }
       this.redraw();
     });
 
@@ -152,7 +172,7 @@ class FastNetworkVisualization {
     });
 
     this.zoom = zoom()
-      .scaleExtent([0.1, 10])
+      .scaleExtent([0.02, 10])
       .on('zoom', (event) => {
         this.transform = event.transform;
         this.redraw();
@@ -170,13 +190,14 @@ class FastNetworkVisualization {
       const cx = (event.clientX - rect.left - this.transform.x) / this.transform.k;
       const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
       let nearest = null;
-      let minDist = Infinity;
+      let minDistSq = Infinity;
       for (const node of this.data.nodes) {
-        if (!this.showEmpresasSocios && this.isOrangeNode(node)) continue;
+        if (!this.showEmpresasSocios && node.isOrange) continue;
         const dx = cx - node.x;
         const dy = cy - node.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if (d <= node.radius + 4 && d < minDist) { nearest = node; minDist = d; }
+        const dSq = dx * dx + dy * dy;
+        const threshold = node.radius + 4;
+        if (dSq <= threshold * threshold && dSq < minDistSq) { nearest = node; minDistSq = dSq; }
       }
       if (nearest) {
         this.tooltip.textContent = nearest.label;
@@ -203,15 +224,16 @@ class FastNetworkVisualization {
       const canvasY = (event.clientY - rect.top - this.transform.y) / this.transform.k;
 
       let clickedNode = null;
-      let minDistance = Infinity;
+      let minDistSq = Infinity;
+      const clickRadiusSq = 900; // 30px radius
 
       for (const node of this.data.nodes) {
         const dx = canvasX - node.x;
         const dy = canvasY - node.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance <= 30 && distance < minDistance) {
+        const dSq = dx * dx + dy * dy;
+        if (dSq <= clickRadiusSq && dSq < minDistSq) {
           clickedNode = node;
-          minDistance = distance;
+          minDistSq = dSq;
         }
       }
 
@@ -241,15 +263,43 @@ class FastNetworkVisualization {
 
     document.getElementById('navBack').addEventListener('click', () => this.navigateBack());
     document.getElementById('navFwd').addEventListener('click', () => this.navigateFwd());
+
+    window.addEventListener('popstate', (e) => {
+      if (this._skipNextPopstate) {
+        this._skipNextPopstate = false;
+        return;
+      }
+      const idx = e.state?.navIndex ?? -1;
+      this.navIndex = idx;
+      if (idx >= 0) {
+        this._goToHistoryState();
+      } else {
+        this.selectedNode = null;
+        this.selectedConnectedIds = new Set();
+        this.redraw();
+      }
+      this.updateNavButtons();
+    });
+
+    history.replaceState({ navIndex: -1 }, '', location.href);
   }
 
-  isOrangeNode(node) {
-    return (node.originalColor || node.color) === '#ffa500';
+  buildAdjacency() {
+    this.adjacency = new Map();
+    for (const link of this.data.links) {
+      const s = typeof link.source === 'object' ? link.source : this.data.nodes.find(n => n.id === link.source);
+      const t = typeof link.target === 'object' ? link.target : this.data.nodes.find(n => n.id === link.target);
+      if (!s || !t) continue;
+      if (!this.adjacency.has(s.id)) this.adjacency.set(s.id, []);
+      if (!this.adjacency.has(t.id)) this.adjacency.set(t.id, []);
+      this.adjacency.get(s.id).push({ neighbor: t, link });
+      this.adjacency.get(t.id).push({ neighbor: s, link });
+    }
   }
 
   updateSimulationData() {
     const orangeIds = new Set(
-      this.data.nodes.filter(n => this.isOrangeNode(n)).map(n => n.id)
+      this.data.nodes.filter(n => n.isOrange).map(n => n.id)
     );
 
     const nodes = this.showEmpresasSocios
@@ -292,6 +342,7 @@ class FastNetworkVisualization {
         console.log(`Loaded: ${this.data.nodes.length} nodes, ${this.data.links.length} links`);
         this.processData();
         this.initializeSimulation();
+        this.buildAdjacency();
         this.updateSimulationData();
         this.updateStats();
         this.restoreFromUrl();
@@ -322,13 +373,14 @@ class FastNetworkVisualization {
       }
 
       switch (node.color) {
-        case '#ff0000': node.radius = 12; node.originalRadius = 12; break;
-        case '#4488ff': node.radius = 9;  node.originalRadius = 9;  break;
-        case '#800080': node.radius = 7;  node.originalRadius = 7;  break;
-        default:        node.radius = 5;  node.originalRadius = 5;  break;
+        case '#ff0000': node.radius = 14; node.originalRadius = 14; break;
+        case '#4488ff': node.radius = 11; node.originalRadius = 11; break;
+        case '#800080': node.radius = 9;  node.originalRadius = 9;  break;
+        default:        node.radius = 7;  node.originalRadius = 7;  break;
       }
 
       node.isHenrique = node.color === '#ff0000';
+      node.isOrange   = node.originalColor === '#ffa500';
       node.highlighted = false;
     }
   }
@@ -373,7 +425,7 @@ class FastNetworkVisualization {
     ctx.shadowBlur = 0;
 
     const linkHidden = link =>
-      !this.showEmpresasSocios && (this.isOrangeNode(link.source) || this.isOrangeNode(link.target));
+      !this.showEmpresasSocios && (link.source.isOrange || link.target.isOrange);
 
     // Batch all non-highlighted links in one path
     ctx.globalAlpha = this.visualParams.linkOpacity;
@@ -411,7 +463,7 @@ class FastNetworkVisualization {
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 
-    const nodeHidden = node => !this.showEmpresasSocios && this.isOrangeNode(node);
+    const nodeHidden = node => !this.showEmpresasSocios && node.isOrange;
 
     if (!this.selectedNode) {
       const hasStatusFilter = this.statusFilters.size > 0;
@@ -540,7 +592,7 @@ class FastNetworkVisualization {
     const z = this.transform.k;
 
     const labelsToShow = this.data.nodes.filter(node => {
-      if (!this.showEmpresasSocios && this.isOrangeNode(node)) return false;
+      if (!this.showEmpresasSocios && node.isOrange) return false;
       if (this.showLabels) {
         if (z > 3.0) return node.radius >= 3;
         if (z > 1.5) return node.radius >= 5;
@@ -640,12 +692,14 @@ class FastNetworkVisualization {
   }
 
   hasLabelCollision(rect) {
-    return this.labelPositions.some(pos =>
-      rect.x < pos.x + pos.width &&
-      rect.x + rect.width > pos.x &&
-      rect.y < pos.y + pos.height &&
-      rect.y + rect.height > pos.y
-    );
+    for (let i = 0; i < this.labelPositions.length; i++) {
+      const pos = this.labelPositions[i];
+      if (rect.x < pos.x + pos.width &&
+          rect.x + rect.width > pos.x &&
+          rect.y < pos.y + pos.height &&
+          rect.y + rect.height > pos.y) return true;
+    }
+    return false;
   }
 
   drawEdgeLabels() {
@@ -689,14 +743,10 @@ class FastNetworkVisualization {
   selectNode(node) {
     this.selectedNode = node;
     this.selectedConnectedIds = new Set();
-    if (node) {
-      for (const link of this.data.links) {
-        const s = typeof link.source === 'object' ? link.source.id : link.source;
-        const t = typeof link.target === 'object' ? link.target.id : link.target;
-        if (s === node.id) this.selectedConnectedIds.add(t);
-        else if (t === node.id) this.selectedConnectedIds.add(s);
+    if (node && this.adjacency) {
+      for (const { neighbor } of (this.adjacency.get(node.id) ?? [])) {
+        this.selectedConnectedIds.add(neighbor.id);
       }
-      history.replaceState(null, '', '?n=' + encodeURIComponent(node.id));
     }
     this.redraw();
   }
@@ -704,15 +754,21 @@ class FastNetworkVisualization {
   clearSelection() {
     this.selectedNode = null;
     this.selectedConnectedIds = new Set();
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(history.state, '', location.pathname);
     this.redraw();
   }
 
-  pushNav(nodeId) {
-    if (this.navHistory[this.navIndex] === nodeId) return;
+  pushNav(state) {
+    const current = this.navHistory[this.navIndex];
+    if (current && current.type === state.type) {
+      if (state.type === 'node' && current.id === state.id) return;
+      if (state.type === 'search' && current.term === state.term) return;
+    }
     this.navHistory = this.navHistory.slice(0, this.navIndex + 1);
-    this.navHistory.push(nodeId);
+    this.navHistory.push(state);
     this.navIndex = this.navHistory.length - 1;
+    const url = state.type === 'node' ? '?n=' + encodeURIComponent(state.id) : location.pathname;
+    history.pushState({ navIndex: this.navIndex }, '', url);
     this.updateNavButtons();
   }
 
@@ -726,49 +782,54 @@ class FastNetworkVisualization {
   navigateBack() {
     if (this.navIndex <= 0) return;
     this.navIndex--;
-    this._goToHistoryNode();
+    this._goToHistoryState();
+    this._skipNextPopstate = true;
+    history.go(-1);
   }
 
   navigateFwd() {
     if (this.navIndex >= this.navHistory.length - 1) return;
     this.navIndex++;
-    this._goToHistoryNode();
+    this._goToHistoryState();
+    this._skipNextPopstate = true;
+    history.go(1);
   }
 
-  _goToHistoryNode() {
-    const nodeId = this.navHistory[this.navIndex];
-    const node = this.data?.nodes.find(n => n.id === nodeId);
-    if (!node) return;
-    this.selectNode(node);
-    this.showNodeInfo(node, false);
-    const scale = Math.max(1, this.transform.k);
-    select(this.canvas).transition().duration(500).call(
-      this.zoom.transform,
-      zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
-    );
+  _goToHistoryState() {
+    const state = this.navHistory[this.navIndex];
+    if (!state) return;
+
+    if (state.type === 'node') {
+      const node = this.data?.nodes.find(n => n.id === state.id);
+      if (!node) return;
+      this.selectNode(node);
+      this.showNodeInfo(node, false);
+      const scale = Math.max(1, this.transform.k);
+      select(this.canvas).transition().duration(500).call(
+        this.zoom.transform,
+        zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
+      );
+    } else if (state.type === 'search') {
+      this.selectedNode = null;
+      this.selectedConnectedIds = new Set();
+      document.getElementById('searchInput').value = state.term;
+      this.searchNodes(state.term, false);
+    }
+
     this.updateNavButtons();
   }
 
   showNodeInfo(node, pushHistory = true) {
-    if (pushHistory) this.pushNav(node.id);
-    const connectedNodes = [];
+    if (pushHistory) this.pushNav({ type: 'node', id: node.id });
 
-    for (const link of this.data.links) {
-      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-
-      if (sourceId === node.id) {
-        const n = typeof link.target === 'object' ? link.target : this.data.nodes.find(x => x.id === link.target);
-        if (n) connectedNodes.push(n);
-      } else if (targetId === node.id) {
-        const n = typeof link.source === 'object' ? link.source : this.data.nodes.find(x => x.id === link.source);
-        if (n) connectedNodes.push(n);
-      }
+    const seenIds = new Set();
+    const connectedPairs = [];
+    for (const entry of (this.adjacency?.get(node.id) ?? [])) {
+      if (seenIds.has(entry.neighbor.id)) continue;
+      seenIds.add(entry.neighbor.id);
+      connectedPairs.push(entry);
     }
-
-    const uniqueConnected = connectedNodes
-      .filter((n, i, arr) => arr.findIndex(x => x.id === n.id) === i)
-      .sort((a, b) => a.label.localeCompare(b.label));
+    connectedPairs.sort((a, b) => a.neighbor.label.localeCompare(b.neighbor.label));
 
     const color = node.originalColor || node.color;
     let nodeType, nodeTypeText;
@@ -778,8 +839,8 @@ class FastNetworkVisualization {
     else                          { nodeType = 'empresa-socio';  nodeTypeText = 'Empresa do sócio'; }
 
     let connectionsHtml = '';
-    if (uniqueConnected.length > 0) {
-      const items = uniqueConnected.map(cn => {
+    if (connectedPairs.length > 0) {
+      const items = connectedPairs.map(({ neighbor: cn, link }) => {
         const cnColor = cn.originalColor || cn.color;
         let cls = 'connection-item';
         if (cnColor === '#ff0000')      cls += ' henrique';
@@ -787,25 +848,20 @@ class FastNetworkVisualization {
         else if (cnColor === '#800080') cls += ' socio';
         else                            cls += ' empresa-socio';
 
-        const linkBetween = this.data.links.find(link => {
-          const s = typeof link.source === 'object' ? link.source.id : link.source;
-          const t = typeof link.target === 'object' ? link.target.id : link.target;
-          return (s === node.id && t === cn.id) || (s === cn.id && t === node.id);
-        });
-
         let qualText = '';
-        if (linkBetween?.qualificacao_socio !== undefined) {
-          const desc = this.getQualificacaoDescription(linkBetween.qualificacao_socio);
-          qualText = desc;
+        if (link?.qualificacao_socio !== undefined) {
+          qualText = this.getQualificacaoDescription(link.qualificacao_socio);
         }
 
-        return `<li class="${cls}" data-node-id="${cn.id}">${cn.label}<span class="connection-meta">${qualText}</span></li>`;
+        const cnaeDesc = cn.cnae ? CNAE_LABELS.get(cn.cnae) : null;
+        const hoverBg = cnaeDesc ? cnaeDescToHsl(cnaeDesc) : 'rgba(0,255,136,0.1)';
+        return `<li class="${cls}" data-node-id="${cn.id}" style="--hover-bg:${hoverBg}">${cn.label}<span class="connection-meta">${qualText}</span></li>`;
       }).join('');
 
       connectionsHtml = `
         <div class="connections-section">
           <div class="connections-header">
-            Conexões <span class="connection-count">${uniqueConnected.length}</span>
+            Conexões <span class="connection-count">${connectedPairs.length}</span>
           </div>
           <ul class="connections-list">${items}</ul>
         </div>
@@ -814,7 +870,7 @@ class FastNetworkVisualization {
 
     const cnaeDesc = node.cnae ? CNAE_LABELS.get(node.cnae) : null;
     const cnaeHtml = cnaeDesc
-      ? `<span class="node-type cnae-tag">${cnaeDesc}</span>`
+      ? `<span class="node-type cnae-tag clickable-filter" data-cnae="${node.cnae}">${cnaeDesc}</span>`
       : '';
 
     const statusLabel = node.status ?? null;
@@ -834,6 +890,18 @@ class FastNetworkVisualization {
       </div>
       ${connectionsHtml}
     `;
+
+    const cnaeTagEl = document.querySelector('#nodeInfoContent .cnae-tag[data-cnae]');
+    if (cnaeTagEl) {
+      cnaeTagEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const code = cnaeTagEl.dataset.cnae;
+        const desc = CNAE_LABELS.get(code);
+        const labels = this.filterByCnae(code);
+        this.showCnaeInfo(code, desc, labels);
+        window.syncCnaePanel?.(code, desc);
+      });
+    }
 
     document.querySelectorAll('#nodeInfoContent .connection-item[data-node-id]').forEach(item => {
       item.addEventListener('click', (e) => {
@@ -868,7 +936,7 @@ class FastNetworkVisualization {
     }
   }
 
-  searchNodes(searchTerm) {
+  searchNodes(searchTerm, pushHistory = true) {
     const countEl = document.getElementById('searchCount');
     if (!this.data || !searchTerm.trim()) {
       if (countEl) countEl.textContent = '';
@@ -901,7 +969,7 @@ class FastNetworkVisualization {
     }
 
     this.redraw();
-    this.showSearchResults(matches, searchTerm);
+    this.showSearchResults(matches, searchTerm, pushHistory);
 
     const node = matches[0];
     select(this.canvas)
@@ -915,7 +983,8 @@ class FastNetworkVisualization {
       );
   }
 
-  showSearchResults(matches, searchTerm) {
+  showSearchResults(matches, searchTerm, pushHistory = true) {
+    if (pushHistory) this.pushNav({ type: 'search', term: searchTerm });
     const items = matches
       .slice().sort((a, b) => a.label.localeCompare(b.label))
       .map(node => {

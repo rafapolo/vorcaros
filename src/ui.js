@@ -115,6 +115,14 @@ const CNAE_DATA = [
 let activeCnae = null;
 const rowRefs = new Map();
 
+window.syncCnaePanel = function(code, desc) {
+  if (activeCnae && activeCnae !== code) {
+    rowRefs.get(activeCnae)?.classList.remove('active');
+  }
+  activeCnae = code;
+  rowRefs.get(code)?.classList.add('active');
+};
+
 function toggleCnae(code, desc, row) {
   if (activeCnae === code) {
     row.classList.remove('active');
@@ -182,6 +190,16 @@ window.addEventListener('vorcaro-loaded', () => {
       if (!row) continue;
       const badge = row.querySelector('.connection-count');
       if (badge) badge.textContent = cnaeCounts.get(code) ?? 0;
+    }
+    const list = document.getElementById('cnae-list');
+    if (list) {
+      [...list.children]
+        .sort((a, b) => {
+          const aVal = parseInt(a.querySelector('.connection-count')?.textContent ?? '0', 10);
+          const bVal = parseInt(b.querySelector('.connection-count')?.textContent ?? '0', 10);
+          return bVal - aVal;
+        })
+        .forEach(row => list.appendChild(row));
     }
     document.querySelectorAll('.status-btn').forEach(btn => {
       const cnt = statusCounts.get(btn.dataset.status) ?? 0;
