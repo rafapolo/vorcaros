@@ -46,7 +46,8 @@ self.onmessage = function({ data }) {
         .force('center', forceCenter(0, 0))
         .force('collision', forceCollide().radius(collideRadius(params)))
         .alphaDecay(params.alphaDecay)
-        .on('tick', postPositions);
+        .on('tick', postPositions)
+        .on('end', () => self.postMessage({ type: 'end' }));
       break;
     }
     case 'update-nodes': {

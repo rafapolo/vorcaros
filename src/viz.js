@@ -192,15 +192,18 @@ class FastNetworkVisualization {
   _initWorker() {
     this.worker = new Worker(new URL('./simulation-worker.js', import.meta.url));
     this.worker.onmessage = ({ data }) => {
-      if (data.type !== 'tick') return;
-      const { positions } = data;
-      const nodes = this.data.nodes;
-      for (let i = 0; i < nodes.length; i++) {
-        nodes[i].x = positions[i * 2];
-        nodes[i].y = positions[i * 2 + 1];
+      if (data.type === 'tick') {
+        const { positions } = data;
+        const nodes = this.data.nodes;
+        for (let i = 0; i < nodes.length; i++) {
+          nodes[i].x = positions[i * 2];
+          nodes[i].y = positions[i * 2 + 1];
+        }
+        this._dirty = true;
+        this._linksDirty = true;
+      } else if (data.type === 'end') {
+        this._onSimulationEnd?.();
       }
-      this._dirty = true;
-      this._linksDirty = true;
     };
     this.worker.postMessage({
       type: 'init',
@@ -878,17 +881,23 @@ class FastNetworkVisualization {
     if (!id) return;
     const node = this.nodeById.get(+id) ?? this.nodeById.get(id);
     if (!node) return;
-    const tryCenter = () => {
+    // Select node and show info panel as soon as first positions arrive
+    const trySelect = () => {
       if (node.x !== undefined && node.y !== undefined) {
-        this.selectNode(node); this.showNodeInfo(node);
-        const scale = 0.8;
-        select(this.canvas).call(
-          this.zoom.transform,
-          zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
-        );
-      } else { setTimeout(tryCenter, 100); }
+        this.selectNode(node);
+        this.showNodeInfo(node);
+      } else { setTimeout(trySelect, 100); }
     };
-    setTimeout(tryCenter, 300);
+    setTimeout(trySelect, 300);
+    // Center on final settled position after simulation ends
+    this._onSimulationEnd = () => {
+      this._onSimulationEnd = null;
+      const scale = 0.6;
+      select(this.canvas).transition().duration(600).call(
+        this.zoom.transform,
+        zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
+      );
+    };
   }
 
   filterByCnae(cnaeCode) {
