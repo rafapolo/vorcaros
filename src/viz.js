@@ -201,6 +201,14 @@ class FastNetworkVisualization {
         }
         this._dirty = true;
         this._linksDirty = true;
+        if (this._urlFollowNode) {
+          const n = this._urlFollowNode;
+          const scale = 0.6;
+          select(this.canvas).call(
+            this.zoom.transform,
+            zoomIdentity.translate(this.width / 2 - n.x * scale, this.height / 2 - n.y * scale).scale(scale)
+          );
+        }
       } else if (data.type === 'end') {
         this._onSimulationEnd?.();
       }
@@ -881,22 +889,19 @@ class FastNetworkVisualization {
     if (!id) return;
     const node = this.nodeById.get(+id) ?? this.nodeById.get(id);
     if (!node) return;
-    // Select node, show info panel, and do initial centering as soon as first positions arrive
+    // Select node and show info panel as soon as first positions arrive; tick handler follows it
     const trySelect = () => {
       if (node.x !== undefined && node.y !== undefined) {
         this.selectNode(node);
         this.showNodeInfo(node);
-        const scale = 0.6;
-        select(this.canvas).call(
-          this.zoom.transform,
-          zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
-        );
+        this._urlFollowNode = node;
       } else { setTimeout(trySelect, 100); }
     };
     setTimeout(trySelect, 300);
-    // Center on final settled position after simulation ends
+    // Stop following and lock to final settled position after simulation ends
     this._onSimulationEnd = () => {
       this._onSimulationEnd = null;
+      this._urlFollowNode = null;
       const scale = 0.6;
       select(this.canvas).transition().duration(600).call(
         this.zoom.transform,
