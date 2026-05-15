@@ -24,6 +24,7 @@
                             id="searchInput"
                             placeholder="Buscar empresas e sócios..."
                         />
+                        <button class="search-clear" id="searchClear" aria-label="Limpar busca">&times;</button>
                         <span class="search-count" id="searchCount"></span>
                     </div>
 
@@ -69,7 +70,6 @@
                             </div>
                             <span class="legend-count" id="count-orange">—</span>
                         </div>
-                        <div class="legend-total" id="legend-total">Carregando...</div>
                     </div>
                 </div>
 
@@ -100,9 +100,11 @@
                 </div>
             </div>
 
+            <button id="light-toggle" title="Ascender Luz">☀︎</button>
+            <canvas id="links-canvas"></canvas>
             <canvas id="network-canvas"></canvas>
         </div>
 
-        <script src="dist/bundle.js"></script>
+        <script type="module" src="dist/bundle.js"></script>
     </body>
 </html>

@@ -115,7 +115,7 @@ const CNAE_DATA = [
 let activeCnae = null;
 const rowRefs = new Map();
 
-window.syncCnaePanel = function(code, desc) {
+window.syncCnaePanel = function(code) {
   if (activeCnae && activeCnae !== code) {
     rowRefs.get(activeCnae)?.classList.remove('active');
   }
@@ -130,33 +130,67 @@ function toggleCnae(code, desc, row) {
     window.networkViz?.clearCnaeFilter();
     return;
   }
-  if (activeCnae) {
-    rowRefs.get(activeCnae)?.classList.remove('active');
-  }
+  rowRefs.get(activeCnae)?.classList.remove('active');
   activeCnae = code;
   row.classList.add('active');
   const labels = window.networkViz?.filterByCnae(code) ?? [];
   window.networkViz?.showCnaeInfo(code, desc, labels);
 }
 
-function initCnaePanel() {
-  const list = document.getElementById('cnae-list');
-  const frag = document.createDocumentFragment();
+// Mutable sorted copy of the CNAE data for virtual scrolling
+let sortedData = CNAE_DATA.map(([code, desc, cnt]) => ({ code, desc, cnt }));
+const ROW_H = 30;
+const OVERSCAN = 4;
 
-  CNAE_DATA.forEach(([code, desc, cnt]) => {
+let listEl = null;
+let spacerEl = null;
+let viewportEl = null;
+const renderedRows = new Map(); // sortedIndex → { el, code }
+
+function renderVisible() {
+  if (!listEl) return;
+  const scrollTop = listEl.scrollTop;
+  const viewH = listEl.clientHeight || 400;
+  const startI = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN);
+  const endI = Math.min(sortedData.length - 1, Math.ceil((scrollTop + viewH) / ROW_H) + OVERSCAN);
+
+  for (const [i, { el, code }] of renderedRows) {
+    if (i < startI || i > endI) {
+      viewportEl.removeChild(el);
+      renderedRows.delete(i);
+      if (rowRefs.get(code) === el) rowRefs.delete(code);
+    }
+  }
+
+  for (let i = startI; i <= endI; i++) {
+    if (renderedRows.has(i)) continue;
+    const { code, desc, cnt } = sortedData[i];
     const row = document.createElement('div');
-    row.className = 'cnae-row';
+    row.className = 'cnae-row' + (activeCnae === code ? ' active' : '');
+    row.style.cssText = `position:absolute;top:${i * ROW_H}px;left:0;right:0`;
     row.title = `CNAE ${code}`;
-    row.innerHTML =
-      `<span class="cnae-desc">${desc}</span>` +
-      `<span class="connection-count">${cnt}</span>`;
-
+    row.innerHTML = `<span class="cnae-desc">${desc}</span><span class="connection-count">${cnt}</span>`;
     rowRefs.set(code, row);
     row.addEventListener('click', () => toggleCnae(code, desc, row));
-    frag.appendChild(row);
-  });
+    viewportEl.appendChild(row);
+    renderedRows.set(i, { el: row, code });
+  }
+}
 
-  list.appendChild(frag);
+function initCnaePanel() {
+  listEl = document.getElementById('cnae-list');
+  listEl.style.position = 'relative';
+
+  spacerEl = document.createElement('div');
+  spacerEl.style.cssText = `height:${sortedData.length * ROW_H}px;pointer-events:none`;
+  listEl.appendChild(spacerEl);
+
+  viewportEl = document.createElement('div');
+  viewportEl.style.cssText = 'position:absolute;top:0;left:0;right:0';
+  listEl.appendChild(viewportEl);
+
+  listEl.addEventListener('scroll', renderVisible, { passive: true });
+  renderVisible();
 }
 
 const STATUS_ORDER = ['Ativa', 'Baixada', 'Inapta', 'Suspensa'];
@@ -185,22 +219,20 @@ window.addEventListener('vorcaro-loaded', () => {
       if (n.cnae != null) cnaeCounts.set(n.cnae, (cnaeCounts.get(n.cnae) ?? 0) + 1);
       if (n.status)       statusCounts.set(n.status, (statusCounts.get(n.status) ?? 0) + 1);
     }
-    for (const [code, , ] of CNAE_DATA) {
-      const row = rowRefs.get(code);
-      if (!row) continue;
-      const badge = row.querySelector('.connection-count');
-      if (badge) badge.textContent = cnaeCounts.get(code) ?? 0;
+
+    // Update counts and re-sort the virtual list data
+    for (const item of sortedData) {
+      item.cnt = cnaeCounts.get(item.code) ?? 0;
     }
-    const list = document.getElementById('cnae-list');
-    if (list) {
-      [...list.children]
-        .sort((a, b) => {
-          const aVal = parseInt(a.querySelector('.connection-count')?.textContent ?? '0', 10);
-          const bVal = parseInt(b.querySelector('.connection-count')?.textContent ?? '0', 10);
-          return bVal - aVal;
-        })
-        .forEach(row => list.appendChild(row));
-    }
+    sortedData.sort((a, b) => b.cnt - a.cnt);
+    spacerEl.style.height = (sortedData.length * ROW_H) + 'px';
+
+    // Clear rendered rows and re-render with updated sort order
+    for (const { el } of renderedRows.values()) viewportEl.removeChild(el);
+    renderedRows.clear();
+    rowRefs.clear();
+    renderVisible();
+
     document.querySelectorAll('.status-btn').forEach(btn => {
       const cnt = statusCounts.get(btn.dataset.status) ?? 0;
       btn.querySelector('.status-count').textContent = cnt;
@@ -208,11 +240,10 @@ window.addEventListener('vorcaro-loaded', () => {
   }
 
   if (activeCnae === null) return;
-  const row = rowRefs.get(activeCnae);
-  if (!row) return;
-  const desc = CNAE_DATA.find(([c]) => c === activeCnae)?.[1] ?? '';
+  const entry = sortedData.find(d => d.code === activeCnae);
+  if (!entry) return;
   const labels = window.networkViz?.filterByCnae(activeCnae) ?? [];
-  window.networkViz?.showCnaeInfo(activeCnae, desc, labels);
+  window.networkViz?.showCnaeInfo(activeCnae, entry.desc, labels);
 });
 
 document.addEventListener('DOMContentLoaded', () => {

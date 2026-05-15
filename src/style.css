@@ -181,7 +181,34 @@ body {
 .search-wrapper {
     position: relative;
     border-top: 1px solid var(--dim-border);
-    padding: 14px;
+    padding: 14px 14px 5px;
+}
+
+.search-clear {
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    display: none;
+}
+
+.search-clear:hover {
+    color: #fff;
+}
+
+.search-wrapper.has-value .search-clear {
+    display: block;
+}
+
+.search-wrapper.has-value .search-count {
+    right: 52px;
 }
 
 .search-count {
@@ -312,16 +339,6 @@ input[type="text"]::placeholder {
     text-align: right;
 }
 
-.legend-total {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--dim-border);
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.45);
-    text-align: center;
-    font-family: "Monda", monospace;
-}
-
 .node-tooltip {
     position: fixed;
     z-index: 2000;
@@ -356,11 +373,24 @@ input[type="text"]::placeholder {
     border: 1px solid #4488ff;
 }
 
-#network-canvas {
+#links-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100vw;
     height: 100vh;
     display: block;
     background: radial-gradient(circle, #071736, #0f0d0d);
+}
+
+#network-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    background: transparent;
 }
 
 .node-info {
@@ -373,7 +403,7 @@ input[type="text"]::placeholder {
     border: 1px solid var(--panel-border);
     border-radius: 10px;
     backdrop-filter: blur(10px);
-    z-index: 1000;
+    z-index: 1002;
     overflow: hidden;
     display: none;
     flex-direction: column;
@@ -736,4 +766,32 @@ input[type="text"]::placeholder {
     .node-info.open {
         transform: translateY(0);
     }
+}
+
+#light-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    font-size: 22px;
+    color: #aaa;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+#light-toggle:hover {
+    color: #fff;
+}
+
+#light-toggle.active {
+    color: #ffe066;
+    border-color: rgba(255, 224, 102, 0.4);
 }

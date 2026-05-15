@@ -6,7 +6,7 @@
 
 Visualização interativa da rede societária da família Vorcaro em dois graus: as empresas onde Henrique e Daniel Vorcaro são sócios, os demais sócios dessas empresas, e as outras empresas onde esses sócios participam.
 
-O grafo é renderizado em canvas com simulação de forças (d3-force), permitindo explorar conexões entre milhares de nós com performance fluida. Clicar em qualquer nó revela suas conexões diretas, o tipo de vínculo societário (sócio, administrador, diretor etc.) e permite navegar de nó em nó.
+O grafo é renderizado em canvas com simulação de forças (d3-force) rodando em Web Worker, permitindo explorar conexões entre milhares de nós com performance fluida. Clicar em qualquer nó revela suas conexões diretas, o tipo de vínculo societário (sócio, administrador, diretor etc.) e permite navegar de nó em nó.
 
 ## O que mostra
 
@@ -20,15 +20,23 @@ O grafo é renderizado em canvas com simulação de forças (d3-force), permitin
 ## Stack
 
 - **Dados**: CNPJ público, processado via Python (`generate_network.py` + `convert_to_cosmograph.py`)
-- **Visualização**: d3-force + Canvas 2D
-- **Build**: Bun — tree-shaking do d3 (~74 KB vs ~500 KB do CDN)
+- **Visualização**: d3-force + Canvas 2D (dual canvas — links e nós em camadas separadas)
+- **Física**: Web Worker dedicado (`simulation-worker.js`) — posições transferidas via `Float32Array` sem cópia
+- **Build**: Bun — tree-shaking do d3, bundle principal + worker compilados em paralelo
 - **Deploy**: GitHub Actions → GitHub Pages
+
+## Funcionalidades
+
+- **Modo luz** — botão ☀ alterna entre fundo escuro e claro com efeitos de brilho nos links
+- **Busca com clear** — campo de busca exibe botão × para limpar rapidamente
+- **Painel CNAE** — lista com virtual scrolling (apenas linhas visíveis no DOM)
+- **Viewport culling** — links e nós fora da área visível são ignorados no desenho
 
 ## Rodar
 
 ```bash
 bun install
-bun run build   # gera dist/
+bun run build   # gera dist/ (bundle.js + simulation-worker.js)
 # abra index.html no navegador
 ```
 
