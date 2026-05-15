@@ -209,30 +209,35 @@ function initStatusPanel() {
   });
 }
 
-window.addEventListener('vorcaro-loaded', () => {
+function refreshCounts() {
   const nodes = window.networkViz?.data?.nodes;
-  if (nodes) {
-    const cnaeCounts = new Map();
-    const statusCounts = new Map();
-    for (const n of nodes) {
-      if (n.cnae != null) cnaeCounts.set(n.cnae, (cnaeCounts.get(n.cnae) ?? 0) + 1);
-      if (n.status)       statusCounts.set(n.status, (statusCounts.get(n.status) ?? 0) + 1);
-    }
+  if (!nodes) return;
+  const showOrange = window.networkViz?.showEmpresasSocios ?? true;
 
-    for (const item of sortedData) item.cnt = cnaeCounts.get(item.code) ?? 0;
-    sortedData.sort((a, b) => b.cnt - a.cnt);
-    spacerEl.style.height = (sortedData.length * ROW_H) + 'px';
-
-    for (const { el } of renderedRows.values()) viewportEl.removeChild(el);
-    renderedRows.clear();
-    rowRefs.clear();
-    renderVisible();
-
-    document.querySelectorAll('.status-btn').forEach(btn => {
-      const cnt = statusCounts.get(btn.dataset.status) ?? 0;
-      btn.querySelector('.status-count').textContent = cnt;
-    });
+  const cnaeCounts = new Map();
+  const statusCounts = new Map();
+  for (const n of nodes) {
+    if (n.isOrange && !showOrange) continue;
+    if (n.cnae != null) cnaeCounts.set(n.cnae, (cnaeCounts.get(n.cnae) ?? 0) + 1);
+    if (n.status)       statusCounts.set(n.status, (statusCounts.get(n.status) ?? 0) + 1);
   }
+
+  for (const item of sortedData) item.cnt = cnaeCounts.get(item.code) ?? 0;
+  sortedData.sort((a, b) => b.cnt - a.cnt);
+  for (const { el } of renderedRows.values()) viewportEl.removeChild(el);
+  renderedRows.clear();
+  rowRefs.clear();
+  renderVisible();
+
+  document.querySelectorAll('.status-btn').forEach(btn => {
+    const cnt = statusCounts.get(btn.dataset.status) ?? 0;
+    btn.querySelector('.status-count').textContent = cnt;
+  });
+}
+
+window.addEventListener('vorcaro-loaded', () => {
+  spacerEl.style.height = (sortedData.length * ROW_H) + 'px';
+  refreshCounts();
 
   if (activeCnae === null) return;
   const entry = sortedData.find(d => d.code === activeCnae);
@@ -240,6 +245,8 @@ window.addEventListener('vorcaro-loaded', () => {
   const labels = window.networkViz?.filterByCnae(activeCnae) ?? [];
   window.networkViz?.showCnaeInfo(activeCnae, entry.desc, labels);
 });
+
+window.addEventListener('vorcaro-socios-toggle', refreshCounts);
 
 document.addEventListener('DOMContentLoaded', () => {
   initStatusPanel();

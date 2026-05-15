@@ -10,6 +10,10 @@
     box-sizing: border-box;
 }
 
+button, input, label {
+    touch-action: manipulation;
+}
+
 body {
     font-family: "Monda", sans-serif;
     background: #1a1a1a;
@@ -384,6 +388,8 @@ input[type="text"]::placeholder {
     width: 100vw;
     height: 100vh;
     display: block;
+    touch-action: none;
+    user-select: none;
 }
 
 #links-canvas { background: radial-gradient(circle, #071736, #0f0d0d); }

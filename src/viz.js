@@ -259,6 +259,7 @@ class FastNetworkVisualization {
       this.updateSimulationData();
       this._dirty = true;
       this._linksDirty = true;
+      window.dispatchEvent(new Event('vorcaro-socios-toggle'));
     });
 
     document.getElementById('light-toggle').addEventListener('click', () => {
@@ -318,11 +319,12 @@ class FastNetworkVisualization {
       const cx = (event.clientX - rect.left - this.transform.x) / this.transform.k;
       const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
       let clickedNode = null, minDistSq = Infinity;
+      const hitR = window.matchMedia('(pointer: coarse)').matches ? 44 : 30;
       for (const node of this.data.nodes) {
         if (!this.showEmpresasSocios && node.isOrange) continue;
         const dx = cx - node.x, dy = cy - node.y;
         const dSq = dx * dx + dy * dy;
-        if (dSq <= 900 && dSq < minDistSq) { clickedNode = node; minDistSq = dSq; }
+        if (dSq <= hitR * hitR && dSq < minDistSq) { clickedNode = node; minDistSq = dSq; }
       }
       if (clickedNode) { this.selectNode(clickedNode); this.showNodeInfo(clickedNode); }
       else { this.clearSelection(); this.hideNodeInfo(); }
@@ -802,7 +804,9 @@ class FastNetworkVisualization {
       document.getElementById('nodeInfo').classList.remove('open');
       return;
     }
-    const matches = this.data.nodes.filter(node => node.label.toLowerCase().includes(searchTerm));
+    const matches = this.data.nodes.filter(node =>
+      (!node.isOrange || this.showEmpresasSocios) && node.label.toLowerCase().includes(searchTerm)
+    );
     if (countEl) countEl.textContent = matches.length || '';
     if (matches.length === 0) {
       this.processData(); this._dirty = true;
@@ -877,7 +881,7 @@ class FastNetworkVisualization {
     const tryCenter = () => {
       if (node.x !== undefined && node.y !== undefined) {
         this.selectNode(node); this.showNodeInfo(node);
-        const scale = 1.5;
+        const scale = 0.8;
         select(this.canvas).call(
           this.zoom.transform,
           zoomIdentity.translate(this.width / 2 - node.x * scale, this.height / 2 - node.y * scale).scale(scale)
