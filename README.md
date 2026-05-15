@@ -28,9 +28,16 @@ O grafo é renderizado em canvas com simulação de forças (d3-force) rodando e
 ## Funcionalidades
 
 - **Modo luz** — botão ☀ alterna entre fundo escuro e claro com efeitos de brilho nos links
-- **Busca com clear** — campo de busca exibe botão × para limpar rapidamente
+- **Busca com clear e contagem** — campo de busca exibe botão × para limpar e contador de resultados encontrados, alinhados ao centro vertical do input
 - **Painel CNAE** — lista com virtual scrolling (apenas linhas visíveis no DOM)
 - **Viewport culling** — links e nós fora da área visível são ignorados no desenho
+- **Toggle "Empresas dos sócios"** — ativa/desativa os nós laranja (empresas dos demais sócios) para reduzir ruído visual no grafo
+- **Hover tooltip** — ao passar o mouse sobre qualquer nó exibe nome e tipo sem precisar clicar
+- **Navegação com histórico** — back/forward entre nós visitados na sessão
+- **Filtro por status** — painel lateral filtra nós por categoria (família Vorcaro, empresa direta, sócio, empresa do sócio)
+- **Glow verde em busca/CNAE** — highlight visual nos resultados ativos da busca e do filtro CNAE
+- **Deep link via `?n=`** — URL com parâmetro seleciona e centraliza automaticamente um nó ao carregar (ex: `?n=NOME+DO+NO`)
+- **Mobile bottom sheet** — painéis de detalhes e CNAE deslizam de baixo para cima em telas pequenas com transição animada
 
 ## Rodar
 
