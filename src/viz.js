@@ -319,6 +319,7 @@ class FastNetworkVisualization {
       const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
       let clickedNode = null, minDistSq = Infinity;
       for (const node of this.data.nodes) {
+        if (!this.showEmpresasSocios && node.isOrange) continue;
         const dx = cx - node.x, dy = cy - node.y;
         const dSq = dx * dx + dy * dy;
         if (dSq <= 900 && dSq < minDistSq) { clickedNode = node; minDistSq = dSq; }
