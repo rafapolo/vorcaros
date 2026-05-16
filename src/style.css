@@ -487,11 +487,12 @@ input[type="text"]::placeholder {
     container-type: inline-size;
     padding: 20px;
     flex: 1;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     font-size: 15px;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.9);
-    scroll-behavior: smooth;
     min-height: 0;
 }
 
@@ -546,7 +547,7 @@ input[type="text"]::placeholder {
 
 .node-type.cnae-tag {
     background: #ffffff0f;
-    color: rgba(255, 255, 255, 0.55);
+    color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.12);
     font-weight: 400;
     white-space: nowrap;
@@ -580,15 +581,6 @@ input[type="text"]::placeholder {
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
-}
-
-.connections-header {
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
 .connection-count {

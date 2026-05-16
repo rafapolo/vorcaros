@@ -246,7 +246,16 @@ window.addEventListener('vorcaro-loaded', () => {
   window.networkViz?.showCnaeInfo(activeCnae, entry.desc, labels);
 });
 
-window.addEventListener('vorcaro-socios-toggle', refreshCounts);
+window.addEventListener('vorcaro-socios-toggle', () => {
+  refreshCounts();
+  if (activeCnae !== null) {
+    const entry = sortedData.find(d => d.code === activeCnae);
+    if (entry) {
+      const labels = window.networkViz?.filterByCnae(activeCnae) ?? [];
+      window.networkViz?.showCnaeInfo(activeCnae, entry.desc, labels);
+    }
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   initStatusPanel();

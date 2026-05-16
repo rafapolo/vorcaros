@@ -38,6 +38,8 @@ O grafo é renderizado em canvas com simulação de forças (d3-force) rodando e
 - **Glow verde em busca/CNAE** — highlight visual nos resultados ativos da busca e do filtro CNAE
 - **Deep link via `?n=`** — URL com parâmetro seleciona e centraliza automaticamente um nó ao carregar (ex: `?n=NOME+DO+NO`)
 - **Mobile bottom sheet** — painéis de detalhes e CNAE deslizam de baixo para cima em telas pequenas com transição animada
+- **Painel de detalhes fixo** — nome do nó permanece visível ao rolar a lista de conexões; apenas a lista scrolla
+- **Badges de contagem inteligentes** — painel de detalhes exibe badges "N empresas" e/ou "N sócios" calculados a partir dos vizinhos reais de cada nó, substituindo o antigo cabeçalho estático "Conexões N"
 
 ## Rodar
 

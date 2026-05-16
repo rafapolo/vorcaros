@@ -734,14 +734,15 @@ class FastNetworkVisualization {
     else                          { nodeType = 'empresa-socio';  nodeTypeText = 'Empresa do sócio'; }
 
     let connectionsHtml = '';
+    let companyCount = 0, personCount = 0;
     if (connectedPairs.length > 0) {
       const items = connectedPairs.map(({ neighbor: cn, link }) => {
         const cnColor = cn.originalColor || cn.color;
         let cls = 'connection-item';
-        if (cnColor === '#ff0000')      cls += ' henrique';
-        else if (cnColor === '#4488ff') cls += ' empresa-direta';
-        else if (cnColor === '#800080') cls += ' socio';
-        else                            cls += ' empresa-socio';
+        if (cnColor === '#ff0000')      { cls += ' henrique';       personCount++; }
+        else if (cnColor === '#4488ff') { cls += ' empresa-direta'; companyCount++; }
+        else if (cnColor === '#800080') { cls += ' socio';           personCount++; }
+        else                            { cls += ' empresa-socio';  companyCount++; }
         let qualText = '';
         if (link?.qualificacao_socio !== undefined) qualText = this.getQualificacaoDescription(link.qualificacao_socio);
         const cnaeDesc = cn.cnae ? (CNAE_LABELS.get(cn.cnae) ?? `CNAE ${cn.cnae}`) : null;
@@ -753,7 +754,7 @@ class FastNetworkVisualization {
           : '';
         return `<li class="${cls}" data-node-id="${cn.id}" style="--hover-bg:${hoverBg}" title="${cn.label}"><span class="conn-name">${cn.label}</span>${badgesHtml}</li>`;
       }).join('');
-      connectionsHtml = `<div class="connections-section"><div class="connections-header">Conexões <span class="connection-count">${connectedPairs.length}</span></div><ul class="connections-list">${items}</ul></div>`;
+      connectionsHtml = `<div class="connections-section"><ul class="connections-list">${items}</ul></div>`;
     }
 
     const cnaeDesc = node.cnae ? (CNAE_LABELS.get(node.cnae) ?? `CNAE ${node.cnae}`) : null;
@@ -761,6 +762,10 @@ class FastNetworkVisualization {
     const statusLabel = node.status ?? null;
     const statusClass = statusLabel ? `status-${statusLabel.toLowerCase()}` : '';
     const statusHtml = statusLabel ? `<span class="node-type node-status ${statusClass}">${statusLabel}</span>` : '';
+    const countBadges = [];
+    if (companyCount > 0) countBadges.push(`<span class="node-type cnae-tag">${companyCount} empresa${companyCount !== 1 ? 's' : ''}</span>`);
+    if (personCount  > 0) countBadges.push(`<span class="node-type cnae-tag">${personCount} sócio${personCount !== 1 ? 's' : ''}</span>`);
+    const countBadge = countBadges.join('');
 
     document.getElementById('nodeInfo').classList.add('open');
     document.querySelector('.top-controls').classList.remove('open');
@@ -768,7 +773,7 @@ class FastNetworkVisualization {
       <div class="node-details">
         <div class="node-name">${node.label}</div>
         <div class="node-type-row">
-          <span class="node-type ${nodeType}">${nodeTypeText}</span>${statusHtml}${cnaeHtml}
+          <span class="node-type ${nodeType}">${nodeTypeText}</span>${statusHtml}${cnaeHtml}${countBadge}
         </div>
       </div>
       ${connectionsHtml}
@@ -919,7 +924,7 @@ class FastNetworkVisualization {
     this.cnaeFilter = cnaeCode;
     this.clearSelection();
     if (!this.data) return [];
-    const labels = this.data.nodes.filter(n => n.cnae === cnaeCode).map(n => n.label).sort((a, b) => a.localeCompare(b));
+    const labels = this.data.nodes.filter(n => n.cnae === cnaeCode && (this.showEmpresasSocios || !n.isOrange)).map(n => n.label).sort((a, b) => a.localeCompare(b));
     this._dirty = true;
     return labels;
   }
@@ -935,9 +940,8 @@ class FastNetworkVisualization {
     document.getElementById('nodeInfoTitle').textContent = 'Detalhes';
     document.getElementById('nodeInfo').classList.add('open');
     document.getElementById('nodeInfoContent').innerHTML = `
-      <div class="node-name">${cnaeDesc}</div>
+      <div class="node-name">${cnaeDesc ?? `CNAE ${cnaeCode}`}</div>
       <div class="node-type-row" style="margin-bottom:15px">
-        <span class="node-type cnae-tag">CNAE ${cnaeCode}</span>
         <span class="node-type cnae-tag">${labels.length} empresa${labels.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="connections-section" style="border-top:none;padding-top:0"><ul class="connections-list">${items}</ul></div>
