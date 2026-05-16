@@ -94,7 +94,7 @@ def convert():
     all_entities = set(df["source"].tolist() + df["target"].tolist())
     print(f"Found {len(all_entities)} unique entities")
 
-    company_entities = {e for e in all_entities if e.upper() not in central_upper and e not in socios}
+    company_entities = {e for e in all_entities if e.upper() not in central_upper}
     cnae_map = load_cnae_map(company_entities)
     status_map = load_status_map(company_entities)
 

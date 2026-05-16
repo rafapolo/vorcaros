@@ -1,0 +1,92 @@
+THREAD: A rede Vorcaro — 15 tweets
+============================================================
+
+1/15
+Em 2025, o Banco Master colapsou com rombo de R$40–41 bi — o maior da história do FGC. Daniel Bueno Vorcaro foi preso tentando embarcar para Malta num Falcon 7X privado. Mas a história da família começa muito antes e vai muito além do banco. 🧵
+
+---
+
+2/15
+Mapeamos a rede societária completa da família Vorcaro usando dados públicos do CNPJ. O resultado: 8.606 nós, 9.742 relações societárias, 728 CNAEs distintos — cinco pessoas no centro de uma teia que envolve milhares de CPFs e CNPJs em todo o Brasil.
+
+---
+
+3/15
+São cinco membros da família. Natalia Bueno Vorcaro lidera com 58 empresas diretas (~80 na rede expandida). Henrique (pai) tem 54. Daniel, o banqueiro preso, tem apenas 15 — seu peso real aparece nas conexões de segundo grau, não no nome próprio.
+
+---
+
+4/15
+O maior bloco da rede: 311 holdings de participações (CNAE 6462000). Holdings em cascata são o mecanismo clássico para três coisas: opacificar quem controla o quê, separar patrimônio pessoal de risco penal, e criar camadas que dificultam o rastreamento de dividendos. 311 para 5 pessoas não tem paralelo em grupos legítimos.
+
+---
+
+5/15
+189 "associações de defesa de direitos sociais" dentro da mesma rede. Mais que as igrejas. Associações civis têm isenção fiscal sobre receitas, não distribuem lucros formalmente (mas pagam salários e serviços), recebem doações dedutíveis e têm menos escrutínio que empresas. Nenhuma lógica operacional legítima óbvia aqui.
+
+---
+
+6/15
+Como uma estrutura de igrejas encobre movimentações financeiras — o mecanismo:
+
+→ Imunidade tributária ampla (art. 150 da CF): sem IR, sem IPTU, sem ISS
+→ Sem obrigação de publicar balanços detalhados ao público
+→ Podem receber doações em dinheiro vivo sem declaração abaixo de certos limites
+→ Transferências entre igrejas parecem atividade religiosa normal
+→ Pastores são funcionários legítimos — salários de qualquer valor são justificáveis
+→ "Dízimos" e "ofertas" chegam em múltiplos pequenos depósitos, difíceis de rastrear
+→ Uma rede de 63 igrejas é uma rede de 63 contas bancárias com imunidade tributária
+
+É a estrutura perfeita para receber recursos, movimentá-los entre si e devolvê-los limpos.
+
+---
+
+7/15
+A conexão documentada: Fabiano Zettel — pastor evangélico e cunhado de Daniel Vorcaro — transferiu R$40,9 milhões em 54 transações para a Igreja Batista da Lagoinha, já investigada como parte do esquema do Banco Master. Felipe Cançado (primo) aparece diretamente na Associação Evangélica Betel. As outras 61 igrejas da rede ainda não foram investigadas publicamente.
+
+---
+
+8/15
+394 empresas de saúde na rede: 214 de consultas ambulatoriais, 93 prontos-socorros, 87 odontológicas. O setor de saúde é historicamente o maior vetor de desvio de recursos públicos no Brasil — SUS, IPSEMGs estaduais, planos de servidores. A pergunta: quantas têm contratos com o Estado?
+
+---
+
+9/15
+253 restaurantes e lanchonetes. Alto giro de dinheiro em espécie. É a estrutura clássica de smurfing: depósitos pulverizados abaixo do limite de notificação compulsória (R$2 mil em espécie, R$10 mil em transferência). Faturamento real só auditável com cruzamento fiscal sofisticado — que raramente acontece em pequenos estabelecimentos.
+
+---
+
+10/15
+97 transportadoras de carga interestadual. Frete é veículo favorito para lavagem via superfaturamento: uma nota fiscal de transporte é difícil de contestar e justifica grandes movimentações entre empresas do grupo. 108 escritórios de advocacia + 54 contabilidades internalizadas garantem que toda essa documentação seja produzida por aliados.
+
+---
+
+11/15
+A Operação Compliance Zero revelou "A Turma": estrutura financiada por Henrique Moura Vorcaro com até R$1 milhão/mês. Bicheiros, milicianos e policiais corruptos contratados para intimidação de rivais, ataques digitais e ameaças. Com acesso irregular a sistemas internos da PF, do MP e da Interpol. Um "sicário" como braço-direito — reportado morto pela PF.
+
+---
+
+12/15
+Holdings com nome bíblico dentro da própria estrutura financeira: REINO GROUP PARTICIPAÇÕES S.A. e HEBRON PARTICIPAÇÕES LTDA. Vocabulário claramente religioso em veículos de participação societária. Pode ser perfil do fundador — ou pode ser sinalização para captação de investidores dentro de comunidades evangélicas. Vale investigar quem são os cotistas.
+
+---
+
+13/15
+Em 2018, Daniel comprou o Banco Máxima com patrimônio de R$200 milhões. Em 7 anos, o rombo chegou a R$40–41 bi — crescimento de 20.000%. Natalia, irmã com 4x mais empresas que ele, teve a casa vasculhada pela PF em janeiro/2026. Felipe Cançado fugiu da casa na Bahia minutos antes da PF chegar. O pai foi preso em maio/2026.
+
+---
+
+14/15
+2022: Henrique doa R$1 milhão ao Partido Novo em MG. Maio/2026: o escândalo atinge Flávio Bolsonaro, pré-candidato à presidência. A estrutura societária de uma família mineira cruzou o centro da disputa eleitoral de 2026. Qual é o nexo exato ainda não está público.
+
+---
+
+15/15
+Perguntas que nenhuma cobertura respondeu ainda:
+→ Quais das 189 associações têm contratos públicos?
+→ Das 63 igrejas, quantas receberam recursos rastreáveis do ecossistema Master?
+→ As 394 empresas de saúde têm contratos SUS ou IPSEMG?
+→ Felipe Cançado foi recapturado?
+→ Quem são os cotistas da REINO GROUP e da HEBRON?
+
+O grafo é público e navegável. Dados abertos do CNPJ. Se você é jornalista ou pesquisador, a estrutura está mapeada.

@@ -744,14 +744,19 @@ class FastNetworkVisualization {
         else                            cls += ' empresa-socio';
         let qualText = '';
         if (link?.qualificacao_socio !== undefined) qualText = this.getQualificacaoDescription(link.qualificacao_socio);
-        const cnaeDesc = cn.cnae ? CNAE_LABELS.get(cn.cnae) : null;
+        const cnaeDesc = cn.cnae ? (CNAE_LABELS.get(cn.cnae) ?? `CNAE ${cn.cnae}`) : null;
         const hoverBg = cnaeDesc ? cnaeDescToHsl(cnaeDesc) : 'rgba(0,255,136,0.1)';
-        return `<li class="${cls}" data-node-id="${cn.id}" style="--hover-bg:${hoverBg}">${cn.label}<span class="connection-meta">${qualText}</span></li>`;
+        const roleSpan = qualText ? `<span class="node-type node-role">${qualText}</span>` : '';
+        const cnaeSpan = cnaeDesc ? `<span class="conn-cnae">${cnaeDesc}</span>` : '';
+        const badgesHtml = (roleSpan || cnaeSpan)
+          ? `<span class="connection-badges">${roleSpan}${cnaeSpan}</span>`
+          : '';
+        return `<li class="${cls}" data-node-id="${cn.id}" style="--hover-bg:${hoverBg}" title="${cn.label}"><span class="conn-name">${cn.label}</span>${badgesHtml}</li>`;
       }).join('');
       connectionsHtml = `<div class="connections-section"><div class="connections-header">Conexões <span class="connection-count">${connectedPairs.length}</span></div><ul class="connections-list">${items}</ul></div>`;
     }
 
-    const cnaeDesc = node.cnae ? CNAE_LABELS.get(node.cnae) : null;
+    const cnaeDesc = node.cnae ? (CNAE_LABELS.get(node.cnae) ?? `CNAE ${node.cnae}`) : null;
     const cnaeHtml = cnaeDesc ? `<span class="node-type cnae-tag clickable-filter" data-cnae="${node.cnae}">${cnaeDesc}</span>` : '';
     const statusLabel = node.status ?? null;
     const statusClass = statusLabel ? `status-${statusLabel.toLowerCase()}` : '';

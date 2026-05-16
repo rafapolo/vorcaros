@@ -38,7 +38,7 @@ body {
     flex-direction: column;
     gap: 10px;
     max-height: calc(100vh - 40px);
-    width: 400px;
+    width: 340px;
 }
 
 .top-controls {
@@ -484,6 +484,7 @@ input[type="text"]::placeholder {
 }
 
 #nodeInfoContent {
+    container-type: inline-size;
     padding: 20px;
     flex: 1;
     overflow-y: auto;
@@ -495,7 +496,7 @@ input[type="text"]::placeholder {
 }
 
 .node-name {
-    font-size: 16px;
+    font-size: clamp(12px, 4.5cqw, 20px);
     font-weight: 700;
     color: #fff;
     margin-bottom: 10px;
@@ -544,7 +545,7 @@ input[type="text"]::placeholder {
 }
 
 .node-type.cnae-tag {
-    background: rgba(255, 255, 255, 0.06);
+    background: #ffffff0f;
     color: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.12);
     font-weight: 400;
@@ -573,7 +574,7 @@ input[type="text"]::placeholder {
 
 .connections-section {
     border-top: 1px solid var(--dim-border);
-    padding-top: 15px;
+    padding-top: 10px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -584,7 +585,7 @@ input[type="text"]::placeholder {
 .connections-header {
     font-weight: 600;
     color: #fff;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -622,29 +623,20 @@ input[type="text"]::placeholder {
 }
 
 .connection-item {
-    padding: 8px 12px 8px 24px;
-    margin: 2px 0;
+    padding: 5px 10px 5px 10px;
+    margin: 6px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid transparent;
     border-radius: 4px;
     color: rgba(255, 255, 255, 0.8);
     font-size: 13px;
-    word-break: break-word;
     cursor: pointer;
     transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
     background: rgba(255, 255, 255, 0.02);
-    min-height: 32px;
-    display: block;
-    position: relative;
+    display: flex;
+    flex-direction: column;
     list-style: none;
     will-change: transform;
-}
-
-.connection-item::before {
-    content: "•";
-    position: absolute;
-    left: 12px;
-    color: inherit;
-    font-size: 16px;
 }
 
 .connection-item:focus {
@@ -665,10 +657,51 @@ input[type="text"]::placeholder {
     margin-top: 2px;
 }
 
-.connection-item.henrique { color: #ff6b6b; font-weight: 500; }
-.connection-item.empresa-direta { color: #88bbff; }
-.connection-item.socio { color: #c084fc; }
-.connection-item.empresa-socio { color: #fbbf24; }
+.conn-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.connection-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 5px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+
+.connection-badges .node-type {
+    font-size: 10px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+}
+
+.conn-cnae {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.connection-item.henrique     .node-role { background: rgba(255,0,0,0.18);     color: #ff6b6b; border: 1px solid rgba(255,0,0,0.3); }
+.connection-item.empresa-direta .node-role { background: rgba(68,136,255,0.18); color: #88bbff; border: 1px solid rgba(68,136,255,0.3); }
+.connection-item.socio        .node-role { background: rgba(128,0,128,0.18);   color: #c084fc; border: 1px solid rgba(128,0,128,0.3); }
+.connection-item.empresa-socio .node-role { background: rgba(255,165,0,0.18);  color: #fbbf24; border: 1px solid rgba(255,165,0,0.3); }
+
+.connection-item.henrique { color: #ff6b6b; font-weight: 500; border-left-color: #ff6b6b; }
+.connection-item.empresa-direta { color: #88bbff; border-left-color: #88bbff; }
+.connection-item.socio { color: #c084fc; border-left-color: #c084fc; }
+.connection-item.empresa-socio { color: #fbbf24; border-left-color: #fbbf24; }
 
 .panel-toggle {
     display: none;

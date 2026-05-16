@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run build.js",
-    "dev": "bun run dev.js",
+    "dev": "bun run dev.js & bun --watch run build.js",
     "test": "bun run build.js && bunx playwright test",
     "test:ui": "bun run build.js && bunx playwright test --ui"
   },
