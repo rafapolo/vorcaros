@@ -13,6 +13,16 @@ function cnaeDescToHsl(str) {
   return v;
 }
 
+// Memoize CNAE label lookups — CNAE_LABELS is a static Map but formatting the
+// fallback string on every call creates a new string each time.
+const _cnaeLabelCache = new Map();
+function getCnaeLabel(cnae) {
+  if (_cnaeLabelCache.has(cnae)) return _cnaeLabelCache.get(cnae);
+  const v = CNAE_LABELS.get(cnae) ?? `CNAE ${cnae}`;
+  _cnaeLabelCache.set(cnae, v);
+  return v;
+}
+
 const QUALIFICACAO_MAP = {
   0: "Não informada", 5: "Administrador", 8: "Conselheiro de Administração",
   9: "Curador", 10: "Diretor", 11: "Interventor", 12: "Inventariante",
@@ -127,7 +137,7 @@ class FastNetworkVisualization {
     if (!this.data) return;
     const lctx = this.linksCtx;
     const vp = this._computeViewport(200);
-    const linkHidden = l => !this.showEmpresasSocios && (l.source.isOrange || l.target.isOrange);
+    const showEmpresasSocios = this.showEmpresasSocios;
     lctx.save();
     lctx.clearRect(0, 0, this.width, this.height);
     lctx.translate(this.transform.x, this.transform.y);
@@ -139,9 +149,11 @@ class FastNetworkVisualization {
     lctx.shadowColor = this.lightMode ? '#aaccff' : 'transparent';
     lctx.beginPath();
     for (const link of this.data.links) {
-      if (linkHidden(link) || !this._linkInViewport(link, vp)) continue;
-      lctx.moveTo(link.source.x, link.source.y);
-      lctx.lineTo(link.target.x, link.target.y);
+      const { source, target } = link;
+      if ((!showEmpresasSocios && (source.isOrange || target.isOrange)) ||
+          !this._linkInViewport(link, vp)) continue;
+      lctx.moveTo(source.x, source.y);
+      lctx.lineTo(target.x, target.y);
     }
     lctx.stroke();
     lctx.restore();
@@ -163,7 +175,7 @@ class FastNetworkVisualization {
 
   _drawHighlightedLinks(ctx) {
     const vp = this._computeViewport(200);
-    const { showEmpresasSocios } = this;
+    const showOrange = this.showEmpresasSocios;
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = '#00ff88';
     ctx.lineWidth = Math.max(1.5, 2 / this.transform.k);
@@ -171,10 +183,11 @@ class FastNetworkVisualization {
     ctx.shadowBlur = 10;
     ctx.beginPath();
     for (const { link } of (this.adjacency?.get(this.selectedNode.id) ?? [])) {
-      if (!showEmpresasSocios && (link.source.isOrange || link.target.isOrange)) continue;
+      const { source, target } = link;
+      if (!showOrange && (source.isOrange || target.isOrange)) continue;
       if (!this._linkInViewport(link, vp)) continue;
-      ctx.moveTo(link.source.x, link.source.y);
-      ctx.lineTo(link.target.x, link.target.y);
+      ctx.moveTo(source.x, source.y);
+      ctx.lineTo(target.x, target.y);
     }
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -300,8 +313,11 @@ class FastNetworkVisualization {
       const cx = (event.clientX - rect.left - this.transform.x) / this.transform.k;
       const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
       let nearest = null, minDistSq = Infinity;
-      for (const node of this.data.nodes) {
-        if (!this.showEmpresasSocios && node.isOrange) continue;
+      const nodes = this.data.nodes;
+      const showOrange = this.showEmpresasSocios;
+      for (let i = 0, len = nodes.length; i < len; i++) {
+        const node = nodes[i];
+        if (!showOrange && node.isOrange) continue;
         const dx = cx - node.x, dy = cy - node.y;
         const dSq = dx * dx + dy * dy;
         if (dSq <= node.hoverRadiusSq && dSq < minDistSq) { nearest = node; minDistSq = dSq; }
@@ -330,8 +346,11 @@ class FastNetworkVisualization {
       const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
       let clickedNode = null, minDistSq = Infinity;
       const hitRSq = (this._coarsePointer ? 44 : 30) ** 2;
-      for (const node of this.data.nodes) {
-        if (!this.showEmpresasSocios && node.isOrange) continue;
+      const nodes = this.data.nodes;
+      const showOrange = this.showEmpresasSocios;
+      for (let i = 0, len = nodes.length; i < len; i++) {
+        const node = nodes[i];
+        if (!showOrange && node.isOrange) continue;
         const dx = cx - node.x, dy = cy - node.y;
         const dSq = dx * dx + dy * dy;
         if (dSq <= hitRSq && dSq < minDistSq) { clickedNode = node; minDistSq = dSq; }
@@ -456,15 +475,17 @@ class FastNetworkVisualization {
         ctx.beginPath();
         for (const node of this.data.nodes) {
           if (!nodeVisible(node) || isMatch(node)) continue;
-          ctx.moveTo(node.x + node.radius, node.y);
-          ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+          const { x, y, radius } = node;
+          ctx.moveTo(x + radius, y);
+          ctx.arc(x, y, radius, 0, 2 * Math.PI);
         }
         ctx.fill();
         ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
         ctx.fillStyle = '#00ff88'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = strokeWidth;
         for (const node of this.data.nodes) {
           if (!nodeVisible(node) || !isMatch(node)) continue;
-          ctx.beginPath(); ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+          const { x, y, radius } = node;
+          ctx.beginPath(); ctx.arc(x, y, radius, 0, 2 * Math.PI);
           ctx.fill(); ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -481,17 +502,27 @@ class FastNetworkVisualization {
       for (const [color, nodes] of groups) {
         ctx.fillStyle = color;
         ctx.beginPath();
-        for (const node of nodes) { ctx.moveTo(node.x + node.radius, node.y); ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI); }
+        for (const node of nodes) {
+          const { x, y, radius } = node;
+          ctx.moveTo(x + radius, y);
+          ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        }
         ctx.fill();
       }
 
-      const highlighted = this.data.nodes.filter(n => nodeVisible(n) && n.highlighted);
-      if (highlighted.length) {
+      // Avoid array allocation per frame — iterate once instead of filter()
+      let hasHighlighted = false;
+      for (const node of this.data.nodes) {
+        if (nodeVisible(node) && node.highlighted) { hasHighlighted = true; break; }
+      }
+      if (hasHighlighted) {
         const strokeWidth = Math.max(1, 1.5 / this.transform.k);
         ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
         ctx.fillStyle = '#00ff88'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = strokeWidth;
-        for (const node of highlighted) {
-          ctx.beginPath(); ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI);
+        for (const node of this.data.nodes) {
+          if (!nodeVisible(node) || !node.highlighted) continue;
+          const { x, y, radius } = node;
+          ctx.beginPath(); ctx.arc(x, y, radius, 0, 2 * Math.PI);
           ctx.fill(); ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -510,7 +541,11 @@ class FastNetworkVisualization {
     for (const [color, nodes] of groups) {
       ctx.fillStyle = color;
       ctx.beginPath();
-      for (const node of nodes) { ctx.moveTo(node.x + node.radius, node.y); ctx.arc(node.x, node.y, node.radius, 0, 2 * Math.PI); }
+      for (const node of nodes) {
+        const { x, y, radius } = node;
+        ctx.moveTo(x + radius, y);
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      }
       ctx.fill();
     }
 
@@ -518,14 +553,16 @@ class FastNetworkVisualization {
     ctx.fillStyle = '#00ff88'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = strokeWidth;
     for (const node of this.data.nodes) {
       if (!nodeVisible(node) || node.id === this.selectedNode.id || !this.selectedConnectedIds.has(node.id)) continue;
-      const r = node.radius * 1.4;
-      ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      const { x, y, radius } = node;
+      const r = radius * 1.4;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
     }
 
     ctx.shadowColor = '#ffff00'; ctx.shadowBlur = 15;
     ctx.fillStyle = '#ffff00'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1, 2 / this.transform.k);
+    const { x: sx, y: sy, radius: sr } = this.selectedNode;
     ctx.beginPath();
-    ctx.arc(this.selectedNode.x, this.selectedNode.y, this.selectedNode.radius * 1.8, 0, 2 * Math.PI);
+    ctx.arc(sx, sy, sr * 1.8, 0, 2 * Math.PI);
     ctx.fill(); ctx.stroke();
     ctx.shadowBlur = 0;
   }
@@ -745,7 +782,7 @@ class FastNetworkVisualization {
         else                            { cls += ' empresa-socio';  companyCount++; }
         let qualText = '';
         if (link?.qualificacao_socio !== undefined) qualText = this.getQualificacaoDescription(link.qualificacao_socio);
-        const cnaeDesc = cn.cnae ? (CNAE_LABELS.get(cn.cnae) ?? `CNAE ${cn.cnae}`) : null;
+        const cnaeDesc = cn.cnae ? getCnaeLabel(cn.cnae) : null;
         const hoverBg = cnaeDesc ? cnaeDescToHsl(cnaeDesc) : 'rgba(0,255,136,0.1)';
         const roleSpan = qualText ? `<span class="node-type node-role">${qualText}</span>` : '';
         const cnaeSpan = cnaeDesc ? `<span class="conn-cnae">${cnaeDesc}</span>` : '';
@@ -757,7 +794,7 @@ class FastNetworkVisualization {
       connectionsHtml = `<div class="connections-section"><ul class="connections-list">${items}</ul></div>`;
     }
 
-    const cnaeDesc = node.cnae ? (CNAE_LABELS.get(node.cnae) ?? `CNAE ${node.cnae}`) : null;
+    const cnaeDesc = node.cnae ? getCnaeLabel(node.cnae) : null;
     const cnaeHtml = cnaeDesc ? `<span class="node-type cnae-tag clickable-filter" data-cnae="${node.cnae}">${cnaeDesc}</span>` : '';
     const statusLabel = node.status ?? null;
     const statusClass = statusLabel ? `status-${statusLabel.toLowerCase()}` : '';
@@ -931,7 +968,7 @@ class FastNetworkVisualization {
 
   showCnaeInfo(cnaeCode, cnaeDesc, labels) {
     const items = labels.map(label => {
-      const node = this.data?.nodes.find(n => n.label === label);
+      const node = this.nodeByLabel?.get(label);
       const color = node ? (node.originalColor || node.color) : null;
       let cls = 'connection-item';
       if (color === '#4488ff') cls += ' empresa-direta'; else cls += ' empresa-socio';
