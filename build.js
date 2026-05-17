@@ -8,6 +8,7 @@ const [result, workerResult] = await Promise.all([
     outdir: './dist',
     minify: true,
     target: 'browser',
+    define: { 'process.env.NODE_ENV': '"production"' },
     naming: {
       entry: 'bundle.[ext]',
       chunk: '[name]-[hash].[ext]',
@@ -19,6 +20,7 @@ const [result, workerResult] = await Promise.all([
     outdir: './dist',
     minify: true,
     target: 'browser',
+    define: { 'process.env.NODE_ENV': '"production"' },
     naming: { entry: '[name].[ext]' },
   }),
 ]);
