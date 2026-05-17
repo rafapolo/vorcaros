@@ -75,6 +75,7 @@ class FastNetworkVisualization {
     this._dirty = false;
     this._linksDirty = false;
     this.lightMode = false;
+    this._coarsePointer = window.matchMedia('(pointer: coarse)').matches;
     this.simulationParams = { linkDistance: 145, chargeStrength: -500, linkStrength: 0.1, alphaDecay: 0.02 };
     this.visualParams = { linkOpacity: 0.8, linkWidth: 1.0 };
     this.setupCanvas();
@@ -162,16 +163,15 @@ class FastNetworkVisualization {
 
   _drawHighlightedLinks(ctx) {
     const vp = this._computeViewport(200);
-    const linkHidden = l => !this.showEmpresasSocios && (l.source.isOrange || l.target.isOrange);
+    const { showEmpresasSocios } = this;
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = '#00ff88';
     ctx.lineWidth = Math.max(1.5, 2 / this.transform.k);
     ctx.shadowColor = '#00ff88';
     ctx.shadowBlur = 10;
     ctx.beginPath();
-    for (const link of this.data.links) {
-      if (linkHidden(link)) continue;
-      if (link.source.id !== this.selectedNode.id && link.target.id !== this.selectedNode.id) continue;
+    for (const { link } of (this.adjacency?.get(this.selectedNode.id) ?? [])) {
+      if (!showEmpresasSocios && (link.source.isOrange || link.target.isOrange)) continue;
       if (!this._linkInViewport(link, vp)) continue;
       ctx.moveTo(link.source.x, link.source.y);
       ctx.lineTo(link.target.x, link.target.y);
@@ -304,8 +304,7 @@ class FastNetworkVisualization {
         if (!this.showEmpresasSocios && node.isOrange) continue;
         const dx = cx - node.x, dy = cy - node.y;
         const dSq = dx * dx + dy * dy;
-        const t = node.radius + 4;
-        if (dSq <= t * t && dSq < minDistSq) { nearest = node; minDistSq = dSq; }
+        if (dSq <= node.hoverRadiusSq && dSq < minDistSq) { nearest = node; minDistSq = dSq; }
       }
       if (nearest) {
         this.tooltip.textContent = nearest.label;
@@ -330,12 +329,12 @@ class FastNetworkVisualization {
       const cx = (event.clientX - rect.left - this.transform.x) / this.transform.k;
       const cy = (event.clientY - rect.top - this.transform.y) / this.transform.k;
       let clickedNode = null, minDistSq = Infinity;
-      const hitR = window.matchMedia('(pointer: coarse)').matches ? 44 : 30;
+      const hitRSq = (this._coarsePointer ? 44 : 30) ** 2;
       for (const node of this.data.nodes) {
         if (!this.showEmpresasSocios && node.isOrange) continue;
         const dx = cx - node.x, dy = cy - node.y;
         const dSq = dx * dx + dy * dy;
-        if (dSq <= hitR * hitR && dSq < minDistSq) { clickedNode = node; minDistSq = dSq; }
+        if (dSq <= hitRSq && dSq < minDistSq) { clickedNode = node; minDistSq = dSq; }
       }
       if (clickedNode) { this.selectNode(clickedNode); this.showNodeInfo(clickedNode); }
       else { this.clearSelection(); this.hideNodeInfo(); }
@@ -433,6 +432,7 @@ class FastNetworkVisualization {
         case '#800080': node.radius = 10; node.originalRadius = 10; break;
         default:        node.radius = 5;  node.originalRadius = 5;  break;
       }
+      node.hoverRadiusSq = (node.radius + 4) * (node.radius + 4);
       node.isHenrique = node.color === '#ff0000';
       node.isOrange   = node.originalColor === '#ffa500';
       node.highlighted = false;
