@@ -12,21 +12,23 @@
     </head>
     <body>
         <div class="container">
-            <button class="panel-toggle" id="toggle-controls">☰</button>
+            <button class="panel-toggle" id="toggle-controls" aria-label="Abrir painel de controles">☰</button>
             <div class="left-panel" id="left-panel">
                 <div class="top-controls">
                     <h1>Vorcaros Negócios Ltda</h1>
                     <h3>Redes empresariais & societárias</h3>
 
                     <div class="search-wrapper">
+                        <label for="searchInput" class="visually-hidden">Buscar empresas e sócios na rede</label>
                         <div class="search-row">
                             <input
                                 type="text"
                                 id="searchInput"
                                 placeholder="Buscar empresas e sócios..."
+                                aria-label="Buscar empresas e sócios na rede"
                             />
                             <button class="search-clear" id="searchClear" aria-label="Limpar busca">&times;</button>
-                            <span class="search-count" id="searchCount"></span>
+                            <span class="search-count" id="searchCount" aria-live="polite" aria-atomic="true"></span>
                         </div>
                     </div>
 
@@ -77,34 +79,38 @@
 
                 <div class="status-panel">
                     <div class="status-panel-header">Situação</div>
-                    <div class="status-toggles" id="status-toggles"></div>
+                    <div class="status-toggles" id="status-toggles" role="group" aria-label="Filtrar por situação da empresa"></div>
                 </div>
 
                 <div class="cnae-panel">
                     <div class="cnae-panel-header">Atividades econômicas</div>
-                    <div class="cnae-list" id="cnae-list"></div>
+                    <div class="cnae-list" id="cnae-list" role="list" aria-label="Filtrar por atividade econômica (CNAE)"></div>
                 </div>
             </div>
 
-            <div class="loading" id="loading">Carregando rede...</div>
+            <div class="loading" id="loading" role="status" aria-live="polite">Carregando rede...</div>
 
             <div class="node-info" id="nodeInfo">
                 <div class="node-info-header">
                     <div class="node-nav-btns">
-                        <button id="navBack" disabled>&#8592;</button>
-                        <button id="navFwd" disabled>&#8594;</button>
+                        <button id="navBack" disabled aria-label="Nó anterior">&#8592;</button>
+                        <button id="navFwd" disabled aria-label="Próximo nó">&#8594;</button>
                     </div>
                     <h3 id="nodeInfoTitle">Detalhes</h3>
-                    <button id="closeNodeInfo">×</button>
+                    <button id="closeNodeInfo" aria-label="Fechar painel de informações">×</button>
                 </div>
                 <div id="nodeInfoContent">
                     Clique em um nó para ver suas informações e conexões.
                 </div>
             </div>
 
-            <button id="light-toggle" title="Ascender Luz">☀︎</button>
-            <canvas id="links-canvas"></canvas>
-            <canvas id="network-canvas"></canvas>
+            <button id="light-toggle" title="Ascender Luz" aria-label="Alternar modo claro/escuro">☀︎</button>
+            <canvas id="links-canvas" aria-hidden="true"></canvas>
+            <canvas id="network-canvas"
+                role="img"
+                aria-label="Grafo de rede corporativa mostrando conexões entre a família Vorcaro e suas empresas"
+                aria-describedby="canvas-desc"></canvas>
+            <p id="canvas-desc" class="visually-hidden">Grafo interativo de rede corporativa. Use o painel de busca à esquerda para explorar empresas e sócios. Clique em um nó para ver suas conexões e informações detalhadas.</p>
         </div>
 
         <script type="module" src="./bundle.js"></script>
