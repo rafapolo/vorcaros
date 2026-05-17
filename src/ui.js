@@ -117,22 +117,36 @@ const rowRefs = new Map();
 
 window.syncCnaePanel = function(code) {
   if (activeCnae && activeCnae !== code) {
-    rowRefs.get(activeCnae)?.classList.remove('active');
+    const prevRow = rowRefs.get(activeCnae);
+    if (prevRow) {
+      prevRow.classList.remove('active');
+      prevRow.setAttribute('aria-pressed', 'false');
+    }
   }
   activeCnae = code;
-  rowRefs.get(code)?.classList.add('active');
+  const newRow = rowRefs.get(code);
+  if (newRow) {
+    newRow.classList.add('active');
+    newRow.setAttribute('aria-pressed', 'true');
+  }
 };
 
 function toggleCnae(code, desc, row) {
   if (activeCnae === code) {
     row.classList.remove('active');
+    row.setAttribute('aria-pressed', 'false');
     activeCnae = null;
     window.networkViz?.clearCnaeFilter();
     return;
   }
-  rowRefs.get(activeCnae)?.classList.remove('active');
+  const prevRow = rowRefs.get(activeCnae);
+  if (prevRow) {
+    prevRow.classList.remove('active');
+    prevRow.setAttribute('aria-pressed', 'false');
+  }
   activeCnae = code;
   row.classList.add('active');
+  row.setAttribute('aria-pressed', 'true');
   const labels = window.networkViz?.filterByCnae(code) ?? [];
   window.networkViz?.showCnaeInfo(code, desc, labels);
 }
@@ -168,9 +182,19 @@ function renderVisible() {
     row.className = 'cnae-row' + (activeCnae === code ? ' active' : '');
     row.style.cssText = `position:absolute;top:${i * ROW_H}px;left:0;right:0`;
     row.title = `CNAE ${code}`;
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('aria-pressed', activeCnae === code ? 'true' : 'false');
+    row.setAttribute('aria-label', `${desc} (${cnt} empresas)`);
     row.innerHTML = `<span class="cnae-desc">${desc}</span><span class="connection-count">${cnt}</span>`;
     rowRefs.set(code, row);
     row.addEventListener('click', () => toggleCnae(code, desc, row));
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCnae(code, desc, row);
+      }
+    });
     viewportEl.appendChild(row);
     renderedRows.set(i, { el: row, code });
   }
@@ -200,9 +224,13 @@ function initStatusPanel() {
     const btn = document.createElement('button');
     btn.className = `status-btn status-${status.toLowerCase()}`;
     btn.dataset.status = status;
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-label', `Filtrar por situação: ${status}`);
     btn.innerHTML = `<span class="status-label">${status}</span><span class="status-count">—</span>`;
     btn.addEventListener('click', () => {
       btn.classList.toggle('active');
+      const isActive = btn.classList.contains('active');
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       window.networkViz?.toggleStatusFilter(status);
     });
     container.appendChild(btn);
@@ -261,10 +289,16 @@ document.addEventListener('DOMContentLoaded', () => {
   initStatusPanel();
   initCnaePanel();
 
-  document.getElementById('toggle-controls').addEventListener('click', () => {
-    document.getElementById('left-panel').classList.toggle('open');
+  const toggleBtn = document.getElementById('toggle-controls');
+  toggleBtn.addEventListener('click', () => {
+    const panel = document.getElementById('left-panel');
+    panel.classList.toggle('open');
     document.getElementById('nodeInfo').classList.remove('open');
+    const isOpen = panel.classList.contains('open');
+    toggleBtn.setAttribute('aria-label', isOpen ? 'Fechar painel de controles' : 'Abrir painel de controles');
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   });
+  toggleBtn.setAttribute('aria-expanded', 'false');
 
   document.getElementById('network-canvas').addEventListener('click', () => {
     document.getElementById('left-panel').classList.remove('open');
